@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打磚塊遊戲</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 打磚塊遊戲</h1>
+            <div class="info">
+                <div class="score">分數: <span id="score">0</span></div>
+                <div class="lives">生命: <span id="lives">3</span></div>
+                <div class="level">關卡: <span id="level">1</span></div>
+            </div>
+        </div>
+
+        <div class="game-container">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            <div id="gameOver" class="overlay hidden">
+                <h2>遊戲結束！</h2>
+                <p>最終分數: <span id="finalScore">0</span></p>
+                <button onclick="game.restart()">重新開始</button>
+                <button onclick="game.loadGame()">載入存檔</button>
+            </div>
+            <div id="levelComplete" class="overlay hidden">
+                <h2>關卡完成！</h2>
+                <p>分數: <span id="levelScore">0</span></p>
+                <button onclick="game.nextLevel()">下一關</button>
+            </div>
+            <div id="pauseScreen" class="overlay hidden">
+                <h2>暫停中</h2>
+                <button onclick="game.resume()">繼續遊戲</button>
+                <button onclick="game.saveGame()">儲存遊戲</button>
+                <button onclick="game.restart()">重新開始</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="game.togglePause()">暫停 (P)</button>
+            <button onclick="game.saveGame()">儲存遊戲 (S)</button>
+            <button onclick="game.loadGame()">載入遊戲 (L)</button>
+            <button onclick="game.restart()">重新開始 (R)</button>
+        </div>
+
+        <div class="instructions">
+            <h3>遊戲說明</h3>
+            <ul>
+                <li><strong>移動:</strong> 使用滑鼠或 ← → 方向鍵</li>
+                <li><strong>發射:</strong> 點擊滑鼠或按空白鍵</li>
+                <li><strong>暫停:</strong> 按 P 鍵</li>
+                <li><strong>道具效果:</strong></li>
+                <ul>
+                    <li>🟢 綠色 - 延長板子</li>
+                    <li>🔴 紅色 - 縮短板子</li>
+                    <li>🔵 藍色 - 減速球</li>
+                    <li>🟡 黃色 - 加速球</li>
+                    <li>🟣 紫色 - 多球</li>
+                    <li>⭐ 金色 - 額外生命</li>
+                </ul>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 模組化的 JavaScript 檔案 -->
+    <script src="js/paddle.js"></script>
+    <script src="js/ball.js"></script>
+    <script src="js/brick.js"></script>
+    <script src="js/powerup.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
