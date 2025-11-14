@@ -30,6 +30,9 @@ class Game {
         // 動畫
         this.animationId = null;
 
+        // 初始化 UI
+        this.updatePattern();
+
         // 初始化控制器
         this.initControls();
 
@@ -284,6 +287,11 @@ class Game {
     levelComplete() {
         this.paused = true;
         document.getElementById('levelScore').textContent = this.score;
+
+        // 顯示下一關的模式
+        const nextPattern = this.brickManager.getPatternName(this.level + 1);
+        document.getElementById('nextPattern').textContent = nextPattern;
+
         document.getElementById('levelComplete').classList.remove('hidden');
     }
 
@@ -293,6 +301,7 @@ class Game {
     nextLevel() {
         this.level++;
         this.updateLevel();
+        this.updatePattern();
 
         // 重置遊戲物件
         this.balls = [new Ball(this.canvas)];
@@ -336,6 +345,7 @@ class Game {
         this.updateScore();
         this.updateLives();
         this.updateLevel();
+        this.updatePattern();
 
         // 隱藏所有覆蓋層
         document.getElementById('gameOver').classList.add('hidden');
@@ -419,6 +429,7 @@ class Game {
         this.updateScore();
         this.updateLives();
         this.updateLevel();
+        this.updatePattern();
 
         // 重置遊戲狀態
         this.paused = false;
@@ -445,5 +456,10 @@ class Game {
 
     updateLevel() {
         document.getElementById('level').textContent = this.level;
+    }
+
+    updatePattern() {
+        const patternName = this.brickManager.getPatternName(this.level);
+        document.getElementById('pattern').textContent = patternName;
     }
 }

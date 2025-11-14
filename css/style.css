@@ -37,12 +37,20 @@ h1 {
 .info {
     display: flex;
     justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 10px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 15px;
     border-radius: 10px;
     font-size: 1.2em;
     font-weight: bold;
+}
+
+.info > div {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
 }
 
 .game-container {
@@ -88,6 +96,19 @@ h1 {
 .overlay p {
     font-size: 1.5em;
     margin-bottom: 30px;
+}
+
+.next-level-info {
+    font-size: 1.3em;
+    color: #00ff88;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.next-level-info span {
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 .overlay button,

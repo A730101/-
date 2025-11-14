@@ -14,6 +14,7 @@
                 <div class="score">分數: <span id="score">0</span></div>
                 <div class="lives">生命: <span id="lives">3</span></div>
                 <div class="level">關卡: <span id="level">1</span></div>
+                <div class="pattern">模式: <span id="pattern">矩形</span></div>
             </div>
         </div>
 
@@ -26,8 +27,9 @@
                 <button onclick="game.loadGame()">載入存檔</button>
             </div>
             <div id="levelComplete" class="overlay hidden">
-                <h2>關卡完成！</h2>
+                <h2>🎉 關卡完成！</h2>
                 <p>分數: <span id="levelScore">0</span></p>
+                <p class="next-level-info">下一關: <span id="nextPattern">金字塔</span></p>
                 <button onclick="game.nextLevel()">下一關</button>
             </div>
             <div id="pauseScreen" class="overlay hidden">
@@ -51,6 +53,8 @@
                 <li><strong>移動:</strong> 使用滑鼠或 ← → 方向鍵</li>
                 <li><strong>發射:</strong> 點擊滑鼠或按空白鍵</li>
                 <li><strong>暫停:</strong> 按 P 鍵</li>
+                <li><strong>關卡模式:</strong> 10 種不同排列（矩形、金字塔、鑽石、倒金字塔、棋盤、圓形、愛心、之字形、十字、隨機）</li>
+                <li><strong>難度系統:</strong> 每完成 10 關，所有模式難度提升一級</li>
                 <li><strong>道具效果:</strong></li>
                 <ul>
                     <li>🟢 綠色 - 延長板子</li>

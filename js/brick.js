@@ -115,6 +115,20 @@ class BrickManager {
             { color: '#f9ca24', points: 40 },
             { color: '#6c5ce7', points: 50 }
         ];
+
+        // 關卡模式定義
+        this.patterns = [
+            'rectangle',    // 1. 矩形（經典）
+            'pyramid',      // 2. 金字塔
+            'diamond',      // 3. 鑽石
+            'inverted',     // 4. 倒金字塔
+            'checkerboard', // 5. 棋盤
+            'circle',       // 6. 圓形
+            'heart',        // 7. 心形
+            'zigzag',       // 8. 之字形
+            'cross',        // 9. 十字形
+            'random'        // 10. 隨機分散
+        ];
     }
 
     /**
@@ -123,31 +137,290 @@ class BrickManager {
     createLevel(level) {
         this.bricks = [];
 
+        // 根據關卡選擇模式（循環使用）
+        const patternIndex = (level - 1) % this.patterns.length;
+        const pattern = this.patterns[patternIndex];
+
+        // 根據關卡增加難度
+        const difficulty = Math.floor((level - 1) / this.patterns.length) + 1;
+
+        // 呼叫對應的模式生成器
+        this.createPattern(pattern, difficulty, level);
+    }
+
+    /**
+     * 根據模式創建磚塊
+     */
+    createPattern(pattern, difficulty, level) {
         const brickWidth = 75;
         const brickHeight = 25;
         const padding = 5;
         const offsetX = 35;
         const offsetY = 60;
+        const maxCols = 10;
+        const maxRows = 10;
 
-        const rows = Math.min(5 + level, 10); // 隨關卡增加行數
+        switch (pattern) {
+            case 'rectangle':
+                this.createRectangle(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+
+            case 'pyramid':
+                this.createPyramid(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+
+            case 'diamond':
+                this.createDiamond(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+
+            case 'inverted':
+                this.createInvertedPyramid(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+
+            case 'checkerboard':
+                this.createCheckerboard(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+
+            case 'circle':
+                this.createCircle(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+
+            case 'heart':
+                this.createHeart(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+
+            case 'zigzag':
+                this.createZigzag(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+
+            case 'cross':
+                this.createCross(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+
+            case 'random':
+                this.createRandom(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level);
+                break;
+        }
+    }
+
+    /**
+     * 矩形模式（經典）
+     */
+    createRectangle(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const rows = Math.min(4 + difficulty, 10);
         const cols = 10;
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
-                const colorIndex = row % this.colors.length;
-                const x = offsetX + col * (brickWidth + padding);
-                const y = offsetY + row * (brickHeight + padding);
-
-                const brick = new Brick(
-                    x, y,
-                    brickWidth, brickHeight,
-                    this.colors[colorIndex].color,
-                    this.colors[colorIndex].points + (level - 1) * 5
-                );
-
-                this.bricks.push(brick);
+                this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
             }
         }
+    }
+
+    /**
+     * 金字塔模式
+     */
+    createPyramid(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const maxRows = Math.min(8 + difficulty, 12);
+
+        for (let row = 0; row < maxRows; row++) {
+            const bricksInRow = maxRows - row;
+            const startCol = Math.floor((10 - bricksInRow) / 2);
+
+            for (let col = 0; col < bricksInRow; col++) {
+                this.addBrick(row, startCol + col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+            }
+        }
+    }
+
+    /**
+     * 鑽石模式
+     */
+    createDiamond(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const size = Math.min(5 + difficulty, 8);
+        const centerRow = size - 1;
+
+        for (let row = 0; row < size * 2 - 1; row++) {
+            let bricksInRow;
+            if (row < size) {
+                bricksInRow = row + 1;
+            } else {
+                bricksInRow = size * 2 - 1 - row;
+            }
+
+            const startCol = Math.floor((10 - bricksInRow) / 2);
+
+            for (let col = 0; col < bricksInRow; col++) {
+                this.addBrick(row, startCol + col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+            }
+        }
+    }
+
+    /**
+     * 倒金字塔模式
+     */
+    createInvertedPyramid(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const maxRows = Math.min(8 + difficulty, 12);
+
+        for (let row = 0; row < maxRows; row++) {
+            const bricksInRow = row + 1;
+            const startCol = Math.floor((10 - bricksInRow) / 2);
+
+            for (let col = 0; col < bricksInRow; col++) {
+                this.addBrick(row, startCol + col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+            }
+        }
+    }
+
+    /**
+     * 棋盤模式
+     */
+    createCheckerboard(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const rows = Math.min(6 + difficulty, 10);
+        const cols = 10;
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                if ((row + col) % 2 === 0) {
+                    this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+                }
+            }
+        }
+    }
+
+    /**
+     * 圓形模式
+     */
+    createCircle(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const centerRow = 5;
+        const centerCol = 5;
+        const radius = 3 + difficulty;
+
+        for (let row = 0; row < 10; row++) {
+            for (let col = 0; col < 10; col++) {
+                const distance = Math.sqrt(Math.pow(row - centerRow, 2) + Math.pow(col - centerCol, 2));
+                if (distance <= radius && distance >= radius - 3) {
+                    this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+                }
+            }
+        }
+    }
+
+    /**
+     * 心形模式
+     */
+    createHeart(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const pattern = [
+            [0, 1, 1, 0, 0, 0, 1, 1, 0, 0],
+            [1, 1, 1, 1, 0, 1, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+        ];
+
+        const maxRows = Math.min(pattern.length + difficulty - 1, 10);
+
+        for (let row = 0; row < maxRows && row < pattern.length; row++) {
+            for (let col = 0; col < 10 && col < pattern[row].length; col++) {
+                if (pattern[row][col] === 1) {
+                    this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+                }
+            }
+        }
+    }
+
+    /**
+     * 之字形模式
+     */
+    createZigzag(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const rows = Math.min(8 + difficulty, 10);
+
+        for (let row = 0; row < rows; row++) {
+            const offset = Math.floor(Math.abs(Math.sin(row * 0.8) * 3));
+            for (let col = offset; col < offset + 7; col++) {
+                if (col < 10) {
+                    this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+                }
+            }
+        }
+    }
+
+    /**
+     * 十字形模式
+     */
+    createCross(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const size = Math.min(8 + difficulty, 10);
+
+        for (let row = 0; row < size; row++) {
+            for (let col = 0; col < 10; col++) {
+                // 垂直線
+                if (col === 4 || col === 5) {
+                    this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+                }
+                // 水平線
+                if ((row === 3 || row === 4) && col >= 1 && col <= 8) {
+                    this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+                }
+            }
+        }
+    }
+
+    /**
+     * 隨機分散模式
+     */
+    createRandom(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        const rows = 10;
+        const cols = 10;
+        const density = 0.5 + (difficulty * 0.05); // 密度隨難度增加
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                if (Math.random() < density) {
+                    this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
+                }
+            }
+        }
+    }
+
+    /**
+     * 新增單個磚塊的輔助方法
+     */
+    addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level) {
+        const colorIndex = row % this.colors.length;
+        const x = offsetX + col * (brickWidth + padding);
+        const y = offsetY + row * (brickHeight + padding);
+
+        const brick = new Brick(
+            x, y,
+            brickWidth, brickHeight,
+            this.colors[colorIndex].color,
+            this.colors[colorIndex].points + (level - 1) * 5
+        );
+
+        this.bricks.push(brick);
+    }
+
+    /**
+     * 獲取當前關卡的模式名稱
+     */
+    getPatternName(level) {
+        const patternIndex = (level - 1) % this.patterns.length;
+        const patternNames = {
+            rectangle: '矩形',
+            pyramid: '金字塔',
+            diamond: '鑽石',
+            inverted: '倒金字塔',
+            checkerboard: '棋盤',
+            circle: '圓形',
+            heart: '愛心',
+            zigzag: '之字形',
+            cross: '十字',
+            random: '隨機'
+        };
+        return patternNames[this.patterns[patternIndex]] || '未知';
     }
 
     /**
