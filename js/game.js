@@ -152,18 +152,16 @@ class Game {
         });
 
         // 移除掉出畫面的球
-        this.balls = this.balls.filter(ball => {
-            if (ball.isOutOfBounds()) {
-                if (this.balls.length > 1) {
-                    return false; // 移除這顆球
-                } else {
-                    // 最後一顆球掉出，失去一條生命
-                    this.loseLife();
-                    return false;
-                }
-            }
-            return true;
-        });
+        const ballsBeforeFilter = this.balls.length;
+        this.balls = this.balls.filter(ball => !ball.isOutOfBounds());
+
+        // 檢查是否有球掉出
+        const ballsLost = ballsBeforeFilter - this.balls.length;
+
+        // 如果所有球都掉出了，失去一條生命
+        if (ballsLost > 0 && this.balls.length === 0) {
+            this.loseLife();
+        }
 
         // 更新道具
         this.powerupManager.update(this.canvas.height);
