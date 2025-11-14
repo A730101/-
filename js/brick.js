@@ -2,14 +2,51 @@
  * Brick 模組 - 處理磚塊的邏輯
  */
 class Brick {
-    constructor(x, y, width, height, color, points) {
+    constructor(x, y, width, height, color, points, health = 1) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+        this.baseColor = color; // 保存基礎顏色
         this.color = color;
         this.points = points;
         this.visible = true;
+        this.maxHealth = health;
+        this.health = health;
+    }
+
+    /**
+     * 更新磚塊顏色（根據生命值）
+     */
+    updateColor() {
+        if (this.health <= 0) {
+            this.visible = false;
+            return;
+        }
+
+        // 根據生命值比例調整顏色透明度和亮度
+        const healthRatio = this.health / this.maxHealth;
+
+        // 將顏色轉換為帶透明度的版本
+        // 生命值越低，顏色越暗
+        const brightness = 0.5 + (healthRatio * 0.5); // 50% - 100% 亮度
+
+        // 如果生命值大於 1，添加更強的視覺效果
+        if (this.maxHealth > 1) {
+            // 提取 RGB 值並調整亮度
+            const hex = this.baseColor.replace('#', '');
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+
+            const adjustedR = Math.floor(r * brightness);
+            const adjustedG = Math.floor(g * brightness);
+            const adjustedB = Math.floor(b * brightness);
+
+            this.color = `rgb(${adjustedR}, ${adjustedG}, ${adjustedB})`;
+        } else {
+            this.color = this.baseColor;
+        }
     }
 
     /**
@@ -28,10 +65,28 @@ class Brick {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.fillRect(this.x, this.y, this.width, this.height / 3);
 
-        // 邊框
+        // 邊框（生命值越高，邊框越粗）
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = this.maxHealth > 1 ? 3 : 2;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+        // 如果生命值大於 1，顯示生命值數字
+        if (this.maxHealth > 1) {
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const textX = this.x + this.width / 2;
+            const textY = this.y + this.height / 2;
+
+            // 繪製描邊文字（更清晰）
+            ctx.strokeText(this.health, textX, textY);
+            ctx.fillText(this.health, textX, textY);
+        }
 
         ctx.shadowBlur = 0;
     }
@@ -65,7 +120,15 @@ class Brick {
                 ball.bounceY();
             }
 
-            this.visible = false;
+            // 減少生命值
+            this.health--;
+            this.updateColor();
+
+            // 如果生命值歸零，隱藏磚塊
+            if (this.health <= 0) {
+                this.visible = false;
+            }
+
             return true;
         }
 
@@ -82,8 +145,11 @@ class Brick {
             width: this.width,
             height: this.height,
             color: this.color,
+            baseColor: this.baseColor,
             points: this.points,
-            visible: this.visible
+            visible: this.visible,
+            health: this.health,
+            maxHealth: this.maxHealth
         };
     }
 
@@ -96,8 +162,11 @@ class Brick {
         this.width = state.width;
         this.height = state.height;
         this.color = state.color;
+        this.baseColor = state.baseColor || state.color;
         this.points = state.points;
         this.visible = state.visible;
+        this.health = state.health || 1;
+        this.maxHealth = state.maxHealth || 1;
     }
 }
 
@@ -405,11 +474,23 @@ class BrickManager {
             return;
         }
 
+        // 計算磚塊生命值（從第 6 關開始有生命值）
+        let health = 1;
+        if (level >= 6) {
+            // 每 5 關增加 1 點生命值
+            // 第 6-10 關: 2 HP
+            // 第 11-15 關: 3 HP
+            // 第 16-20 關: 4 HP
+            // 以此類推，最高 5 HP
+            health = Math.min(Math.floor((level - 1) / 5) + 1, 5);
+        }
+
         const brick = new Brick(
             x, y,
             brickWidth, brickHeight,
             this.colors[colorIndex].color,
-            this.colors[colorIndex].points + (level - 1) * 5
+            this.colors[colorIndex].points + (level - 1) * 5,
+            health
         );
 
         this.bricks.push(brick);
@@ -489,7 +570,8 @@ class BrickManager {
             const brick = new Brick(
                 state.x, state.y,
                 state.width, state.height,
-                state.color, state.points
+                state.color, state.points,
+                state.maxHealth || 1
             );
             brick.loadState(state);
             return brick;
