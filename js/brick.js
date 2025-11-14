@@ -155,7 +155,8 @@ class BrickManager {
         const brickWidth = 75;
         const brickHeight = 25;
         const padding = 5;
-        const offsetX = 35;
+        // 調整 offsetX 使 10 列磚塊能正確居中：(800 - (10*75 + 9*5)) / 2 = 2.5
+        const offsetX = 3;
         const offsetY = 60;
         const maxCols = 10;
         const maxRows = 10;
@@ -237,10 +238,12 @@ class BrickManager {
      * 鑽石模式
      */
     createDiamond(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
+        // 限制 size 以確保不超出畫布（最多 16 行）
         const size = Math.min(5 + difficulty, 8);
         const centerRow = size - 1;
+        const maxRows = size * 2 - 1; // 最多 15 行
 
-        for (let row = 0; row < size * 2 - 1; row++) {
+        for (let row = 0; row < maxRows; row++) {
             let bricksInRow;
             if (row < size) {
                 bricksInRow = row + 1;
@@ -336,14 +339,12 @@ class BrickManager {
      * 之字形模式
      */
     createZigzag(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
-        const rows = Math.min(8 + difficulty, 10);
+        const rows = Math.min(8 + difficulty, 16);
 
         for (let row = 0; row < rows; row++) {
             const offset = Math.floor(Math.abs(Math.sin(row * 0.8) * 3));
-            for (let col = offset; col < offset + 7; col++) {
-                if (col < 10) {
-                    this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
-                }
+            for (let col = offset; col < Math.min(offset + 7, 10); col++) {
+                this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
             }
         }
     }
@@ -352,7 +353,7 @@ class BrickManager {
      * 十字形模式
      */
     createCross(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
-        const size = Math.min(8 + difficulty, 10);
+        const size = Math.min(8 + difficulty, 16);
 
         for (let row = 0; row < size; row++) {
             for (let col = 0; col < 10; col++) {
@@ -360,8 +361,9 @@ class BrickManager {
                 if (col === 4 || col === 5) {
                     this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
                 }
-                // 水平線
-                if ((row === 3 || row === 4) && col >= 1 && col <= 8) {
+                // 水平線（動態調整中心位置）
+                const centerRow = Math.floor(size / 2);
+                if ((row === centerRow - 1 || row === centerRow) && col >= 1 && col <= 8) {
                     this.addBrick(row, col, brickWidth, brickHeight, padding, offsetX, offsetY, level);
                 }
             }
@@ -372,9 +374,9 @@ class BrickManager {
      * 隨機分散模式
      */
     createRandom(brickWidth, brickHeight, padding, offsetX, offsetY, difficulty, level) {
-        const rows = 10;
+        const rows = Math.min(10 + difficulty, 16);
         const cols = 10;
-        const density = 0.5 + (difficulty * 0.05); // 密度隨難度增加
+        const density = Math.min(0.5 + (difficulty * 0.03), 0.8); // 密度隨難度增加，最高 80%
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
@@ -392,6 +394,16 @@ class BrickManager {
         const colorIndex = row % this.colors.length;
         const x = offsetX + col * (brickWidth + padding);
         const y = offsetY + row * (brickHeight + padding);
+
+        // 邊界檢查：確保磚塊不會超出畫布
+        if (x < 0 || x + brickWidth > this.canvas.width) {
+            console.warn(`Brick out of horizontal bounds: x=${x}, width=${brickWidth}`);
+            return;
+        }
+        if (y < 0 || y + brickHeight > this.canvas.height) {
+            console.warn(`Brick out of vertical bounds: y=${y}, height=${brickHeight}`);
+            return;
+        }
 
         const brick = new Brick(
             x, y,

@@ -115,7 +115,7 @@ class Ball {
      * 檢查是否掉出畫面
      */
     isOutOfBounds() {
-        return this.y - this.radius > this.canvas.height;
+        return this.y > this.canvas.height;
     }
 
     /**
