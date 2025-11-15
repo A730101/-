@@ -252,6 +252,11 @@ class Game {
                 this.updateLives();
                 this.showMessage('額外生命！', '#ffd700');
                 break;
+
+            case 'freeze':
+                this.balls.forEach(ball => ball.enableFreeze());
+                this.showMessage('冰球效果！', '#00ffff');
+                break;
         }
     }
 

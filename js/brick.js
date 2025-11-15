@@ -13,14 +13,21 @@ class Brick {
         this.visible = true;
         this.maxHealth = health;
         this.health = health;
+        this.frozen = false; // 冰凍狀態
     }
 
     /**
-     * 更新磚塊顏色（根據生命值）
+     * 更新磚塊顏色（根據生命值和冰凍狀態）
      */
     updateColor() {
         if (this.health <= 0) {
             this.visible = false;
+            return;
+        }
+
+        // 如果被冰凍，使用冰藍色
+        if (this.frozen) {
+            this.color = '#00d4ff'; // 亮青色表示冰凍
             return;
         }
 
@@ -70,8 +77,24 @@ class Brick {
         ctx.lineWidth = this.maxHealth > 1 ? 3 : 2;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
 
-        // 如果生命值大於 1，顯示生命值數字
-        if (this.maxHealth > 1) {
+        // 如果被冰凍，顯示冰塊圖示
+        if (this.frozen) {
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#0088cc';
+            ctx.lineWidth = 2;
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const textX = this.x + this.width / 2;
+            const textY = this.y + this.height / 2;
+
+            // 繪製冰塊圖示
+            ctx.strokeText('❄️', textX, textY);
+            ctx.fillText('❄️', textX, textY);
+        } else if (this.maxHealth > 1) {
+            // 如果生命值大於 1，顯示生命值數字
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.strokeStyle = '#000000';
@@ -120,13 +143,24 @@ class Brick {
                 ball.bounceY();
             }
 
-            // 減少生命值
-            this.health--;
-            this.updateColor();
-
-            // 如果生命值歸零，隱藏磚塊
-            if (this.health <= 0) {
+            // 檢查球是否有冰凍效果
+            if (ball.freezeEffect && !this.frozen) {
+                // 第一次被冰球擊中，冰凍磚塊
+                this.frozen = true;
+                this.updateColor();
+            } else if (this.frozen) {
+                // 磚塊已被冰凍，直接摧毀（不管有多少生命值）
+                this.health = 0;
                 this.visible = false;
+            } else {
+                // 正常減少生命值
+                this.health--;
+                this.updateColor();
+
+                // 如果生命值歸零，隱藏磚塊
+                if (this.health <= 0) {
+                    this.visible = false;
+                }
             }
 
             return true;
@@ -149,7 +183,8 @@ class Brick {
             points: this.points,
             visible: this.visible,
             health: this.health,
-            maxHealth: this.maxHealth
+            maxHealth: this.maxHealth,
+            frozen: this.frozen
         };
     }
 
@@ -167,6 +202,7 @@ class Brick {
         this.visible = state.visible;
         this.health = state.health || 1;
         this.maxHealth = state.maxHealth || 1;
+        this.frozen = state.frozen || false;
     }
 }
 

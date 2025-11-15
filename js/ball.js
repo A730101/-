@@ -15,6 +15,10 @@ class Ball {
 
         // 效果計時器
         this.effectTimer = 0;
+
+        // 冰凍效果
+        this.freezeEffect = false;
+        this.freezeTimer = 0;
     }
 
     /**
@@ -43,14 +47,18 @@ class Ball {
      * 繪製球
      */
     draw(ctx) {
+        // 根據冰凍效果選擇顏色
+        const ballColor = this.freezeEffect ? '#00ffff' : '#00c8ff';
+        const glowColor = this.freezeEffect ? 'rgba(0, 255, 255, 0.6)' : 'rgba(0, 200, 255, 0.6)';
+
         // 繪製光暈
         const gradient = ctx.createRadialGradient(
             this.x, this.y, 0,
             this.x, this.y, this.radius * 2
         );
         gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-        gradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.6)');
-        gradient.addColorStop(1, 'rgba(0, 200, 255, 0)');
+        gradient.addColorStop(0.5, glowColor);
+        gradient.addColorStop(1, this.freezeEffect ? 'rgba(0, 255, 255, 0)' : 'rgba(0, 200, 255, 0)');
 
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -58,9 +66,9 @@ class Ball {
         ctx.fill();
 
         // 繪製球體
-        ctx.fillStyle = '#00c8ff';
+        ctx.fillStyle = ballColor;
         ctx.shadowBlur = 15;
-        ctx.shadowColor = '#00c8ff';
+        ctx.shadowColor = ballColor;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -148,6 +156,14 @@ class Ball {
     }
 
     /**
+     * 啟用冰凍效果
+     */
+    enableFreeze() {
+        this.freezeEffect = true;
+        this.freezeTimer = 600; // 10 秒（比其他效果更長）
+    }
+
+    /**
      * 更新速度向量（保持方向，改變速度）
      */
     updateVelocity() {
@@ -164,6 +180,14 @@ class Ball {
             this.effectTimer--;
             if (this.effectTimer === 0) {
                 this.reset();
+            }
+        }
+
+        // 更新冰凍效果計時器
+        if (this.freezeTimer > 0) {
+            this.freezeTimer--;
+            if (this.freezeTimer === 0) {
+                this.freezeEffect = false;
             }
         }
     }
@@ -198,7 +222,9 @@ class Ball {
             dy: this.dy,
             speed: this.speed,
             launched: this.launched,
-            effectTimer: this.effectTimer
+            effectTimer: this.effectTimer,
+            freezeEffect: this.freezeEffect,
+            freezeTimer: this.freezeTimer
         };
     }
 
@@ -213,5 +239,7 @@ class Ball {
         this.speed = state.speed;
         this.launched = state.launched;
         this.effectTimer = state.effectTimer;
+        this.freezeEffect = state.freezeEffect || false;
+        this.freezeTimer = state.freezeTimer || 0;
     }
 }
