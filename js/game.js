@@ -170,10 +170,27 @@ class Game {
         const collectedPowerups = this.powerupManager.checkCollisions(this.paddle);
         collectedPowerups.forEach(type => this.applyPowerup(type));
 
+        // 更新魔王磚塊
+        this.brickManager.updateBosses();
+
+        // 檢查魔王子彈碰撞
+        if (this.brickManager.checkBossProjectileCollisions(this.paddle)) {
+            this.onBossProjectileHit();
+        }
+
         // 檢查關卡完成
         if (this.brickManager.allDestroyed()) {
             this.levelComplete();
         }
+    }
+
+    /**
+     * 當魔王子彈擊中玩家
+     */
+    onBossProjectileHit() {
+        // 縮短板子作為懲罰
+        this.paddle.shrink();
+        this.showMessage('被火焰擊中！板子縮短！', '#ff4400');
     }
 
     /**

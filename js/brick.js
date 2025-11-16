@@ -213,6 +213,7 @@ class BrickManager {
     constructor(canvas) {
         this.canvas = canvas;
         this.bricks = [];
+        this.bossBricks = []; // 魔王磚塊
         this.colors = [
             { color: '#ff6b6b', points: 10 },
             { color: '#4ecdc4', points: 20 },
@@ -241,6 +242,7 @@ class BrickManager {
      */
     createLevel(level) {
         this.bricks = [];
+        this.bossBricks = []; // 清空魔王磚塊
 
         // 根據關卡選擇模式（循環使用）
         const patternIndex = (level - 1) % this.patterns.length;
@@ -251,6 +253,28 @@ class BrickManager {
 
         // 呼叫對應的模式生成器
         this.createPattern(pattern, difficulty, level);
+
+        // 每 5 關添加魔王磚塊（從第 5 關開始）
+        if (level >= 5 && level % 5 === 0) {
+            this.addBossBrick(level);
+        }
+    }
+
+    /**
+     * 添加魔王磚塊
+     */
+    addBossBrick(level) {
+        // 魔王血量隨關卡增加
+        const bossHealth = Math.min(10 + Math.floor(level / 5) * 5, 30);
+
+        // 魔王磚塊位置（居中，在頂部）
+        const bossWidth = 150;
+        const bossHeight = 40;
+        const bossX = (this.canvas.width - bossWidth) / 2;
+        const bossY = 10;
+
+        const boss = new BossBrick(bossX, bossY, bossWidth, bossHeight, bossHealth);
+        this.bossBricks.push(boss);
     }
 
     /**
@@ -557,6 +581,8 @@ class BrickManager {
      */
     draw(ctx) {
         this.bricks.forEach(brick => brick.draw(ctx));
+        // 繪製魔王磚塊
+        this.bossBricks.forEach(boss => boss.draw(ctx));
     }
 
     /**
@@ -574,6 +600,17 @@ class BrickManager {
             }
         }
 
+        // 檢查魔王磚塊碰撞
+        if (!hitBrick) {
+            for (const boss of this.bossBricks) {
+                if (boss.checkCollision(ball)) {
+                    score += boss.points;
+                    hitBrick = boss;
+                    break;
+                }
+            }
+        }
+
         return { score, hitBrick };
     }
 
@@ -581,7 +618,9 @@ class BrickManager {
      * 檢查是否所有磚塊都被摧毀
      */
     allDestroyed() {
-        return this.bricks.every(brick => !brick.visible);
+        const bricksDestroyed = this.bricks.every(brick => !brick.visible);
+        const bossesDestroyed = this.bossBricks.every(boss => !boss.visible);
+        return bricksDestroyed && bossesDestroyed;
     }
 
     /**
@@ -595,22 +634,82 @@ class BrickManager {
      * 獲取所有磚塊狀態（用於存檔）
      */
     getState() {
-        return this.bricks.map(brick => brick.getState());
+        return {
+            bricks: this.bricks.map(brick => brick.getState()),
+            bossBricks: this.bossBricks.map(boss => boss.getState())
+        };
     }
 
     /**
      * 載入磚塊狀態（用於讀檔）
      */
     loadState(bricksState) {
-        this.bricks = bricksState.map(state => {
-            const brick = new Brick(
-                state.x, state.y,
-                state.width, state.height,
-                state.color, state.points,
-                state.maxHealth || 1
-            );
-            brick.loadState(state);
-            return brick;
+        // 支援新舊格式
+        if (Array.isArray(bricksState)) {
+            // 舊格式：只有磚塊陣列
+            this.bricks = bricksState.map(state => {
+                const brick = new Brick(
+                    state.x, state.y,
+                    state.width, state.height,
+                    state.color, state.points,
+                    state.maxHealth || 1
+                );
+                brick.loadState(state);
+                return brick;
+            });
+            this.bossBricks = [];
+        } else {
+            // 新格式：包含磚塊和魔王磚塊
+            this.bricks = bricksState.bricks.map(state => {
+                const brick = new Brick(
+                    state.x, state.y,
+                    state.width, state.height,
+                    state.color, state.points,
+                    state.maxHealth || 1
+                );
+                brick.loadState(state);
+                return brick;
+            });
+
+            // 載入魔王磚塊
+            if (bricksState.bossBricks) {
+                this.bossBricks = bricksState.bossBricks.map(state => {
+                    const boss = new BossBrick(
+                        state.x, state.y,
+                        state.width, state.height,
+                        state.maxHealth
+                    );
+                    boss.loadState(state);
+                    return boss;
+                });
+            } else {
+                this.bossBricks = [];
+            }
+        }
+    }
+
+    /**
+     * 更新魔王磚塊（攻擊等邏輯）
+     */
+    updateBosses() {
+        this.bossBricks.forEach(boss => {
+            if (boss.visible) {
+                boss.update();
+            }
         });
     }
+
+    /**
+     * 檢查魔王子彈是否擊中球拍
+     */
+    checkBossProjectileCollisions(paddle) {
+        let hit = false;
+        this.bossBricks.forEach(boss => {
+            if (boss.visible && boss.checkProjectileCollision(paddle)) {
+                hit = true;
+            }
+        });
+        return hit;
+    }
 }
+
