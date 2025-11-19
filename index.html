@@ -6,13 +6,13 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>打磚塊遊戲 v1.6</title>
-    <link rel="stylesheet" href="css/style.css?v=1.6">
+    <title>打磚塊遊戲 v1.7</title>
+    <link rel="stylesheet" href="css/style.css?v=1.7">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎮 打磚塊遊戲 <span style="font-size: 0.4em; color: #888;">v1.6</span></h1>
+            <h1>🎮 打磚塊遊戲 <span style="font-size: 0.4em; color: #888;">v1.7</span></h1>
             <div class="info">
                 <div class="score">分數: <span id="score">0</span></div>
                 <div class="lives">生命: <span id="lives">3</span></div>
@@ -41,6 +41,27 @@
                 <button onclick="game.saveGame()">儲存遊戲</button>
                 <button onclick="game.restart()">重新開始</button>
             </div>
+            <div id="bossReward" class="overlay hidden">
+                <h2>🎉 魔王獎勵！</h2>
+                <p class="reward-text">選擇一個強化道具：</p>
+                <div class="reward-cards">
+                    <div class="reward-card" onclick="game.selectReward(0)">
+                        <div class="card-icon" id="rewardIcon0">🔥</div>
+                        <div class="card-name" id="rewardName0">火球</div>
+                        <div class="card-desc" id="rewardDesc0">描述</div>
+                    </div>
+                    <div class="reward-card" onclick="game.selectReward(1)">
+                        <div class="card-icon" id="rewardIcon1">❄️</div>
+                        <div class="card-name" id="rewardName1">冰球</div>
+                        <div class="card-desc" id="rewardDesc1">描述</div>
+                    </div>
+                    <div class="reward-card" onclick="game.selectReward(2)">
+                        <div class="card-icon" id="rewardIcon2">⚡</div>
+                        <div class="card-name" id="rewardName2">分身</div>
+                        <div class="card-desc" id="rewardDesc2">描述</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="controls">
@@ -68,19 +89,19 @@
                     <li>⭐ 金色 - 額外生命</li>
                     <li>❄️ 青色 - 冰球（打中磚塊後冰凍，再打一次直接消失）</li>
                 </ul>
-                <li><strong>魔王磚塊:</strong> 每 5 關出現，高血量並會向玩家發射火焰攻擊！</li>
+                <li><strong>魔王磚塊:</strong> 每 5 關出現，高血量、會移動並有多種攻擊模式（直線、扇形、圓形、追蹤）！擊敗後可選擇強力獎勵！</li>
             </ul>
         </div>
     </div>
 
     <!-- 模組化的 JavaScript 檔案 -->
-    <script src="js/paddle.js?v=1.6"></script>
-    <script src="js/ball.js?v=1.6"></script>
-    <script src="js/boss.js?v=1.6"></script>
-    <script src="js/brick.js?v=1.6"></script>
-    <script src="js/powerup.js?v=1.6"></script>
-    <script src="js/storage.js?v=1.6"></script>
-    <script src="js/game.js?v=1.6"></script>
-    <script src="js/main.js?v=1.6"></script>
+    <script src="js/paddle.js?v=1.7"></script>
+    <script src="js/ball.js?v=1.7"></script>
+    <script src="js/boss.js?v=1.7"></script>
+    <script src="js/brick.js?v=1.7"></script>
+    <script src="js/powerup.js?v=1.7"></script>
+    <script src="js/storage.js?v=1.7"></script>
+    <script src="js/game.js?v=1.7"></script>
+    <script src="js/main.js?v=1.7"></script>
 </body>
 </html>

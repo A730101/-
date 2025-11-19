@@ -691,10 +691,11 @@ class BrickManager {
     /**
      * 更新魔王磚塊（攻擊等邏輯）
      */
-    updateBosses() {
+    updateBosses(paddleX) {
         this.bossBricks.forEach(boss => {
             if (boss.visible) {
                 boss.update();
+                boss.updateProjectiles(paddleX);
             }
         });
     }

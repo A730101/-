@@ -19,6 +19,10 @@ class Ball {
         // 冰凍效果
         this.freezeEffect = false;
         this.freezeTimer = 0;
+
+        // 火球效果
+        this.fireballEffect = false;
+        this.fireballTimer = 0;
     }
 
     /**
@@ -47,9 +51,17 @@ class Ball {
      * 繪製球
      */
     draw(ctx) {
-        // 根據冰凍效果選擇顏色
-        const ballColor = this.freezeEffect ? '#00ffff' : '#00c8ff';
-        const glowColor = this.freezeEffect ? 'rgba(0, 255, 255, 0.6)' : 'rgba(0, 200, 255, 0.6)';
+        // 根據效果選擇顏色
+        let ballColor = '#00c8ff';
+        let glowColor = 'rgba(0, 200, 255, 0.6)';
+
+        if (this.fireballEffect) {
+            ballColor = '#ff6600';
+            glowColor = 'rgba(255, 100, 0, 0.6)';
+        } else if (this.freezeEffect) {
+            ballColor = '#00ffff';
+            glowColor = 'rgba(0, 255, 255, 0.6)';
+        }
 
         // 繪製光暈
         const gradient = ctx.createRadialGradient(
@@ -58,7 +70,7 @@ class Ball {
         );
         gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
         gradient.addColorStop(0.5, glowColor);
-        gradient.addColorStop(1, this.freezeEffect ? 'rgba(0, 255, 255, 0)' : 'rgba(0, 200, 255, 0)');
+        gradient.addColorStop(1, 'transparent');
 
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -164,6 +176,14 @@ class Ball {
     }
 
     /**
+     * 啟用火球效果
+     */
+    enableFireball() {
+        this.fireballEffect = true;
+        this.fireballTimer = 600; // 10 秒
+    }
+
+    /**
      * 更新速度向量（保持方向，改變速度）
      */
     updateVelocity() {
@@ -188,6 +208,14 @@ class Ball {
             this.freezeTimer--;
             if (this.freezeTimer === 0) {
                 this.freezeEffect = false;
+            }
+        }
+
+        // 更新火球效果計時器
+        if (this.fireballTimer > 0) {
+            this.fireballTimer--;
+            if (this.fireballTimer === 0) {
+                this.fireballEffect = false;
             }
         }
     }
@@ -224,7 +252,10 @@ class Ball {
             launched: this.launched,
             effectTimer: this.effectTimer,
             freezeEffect: this.freezeEffect,
-            freezeTimer: this.freezeTimer
+            freezeTimer: this.freezeTimer,
+            fireballEffect: this.fireballEffect,
+            fireballTimer: this.fireballTimer,
+            radius: this.radius
         };
     }
 
@@ -241,5 +272,8 @@ class Ball {
         this.effectTimer = state.effectTimer;
         this.freezeEffect = state.freezeEffect || false;
         this.freezeTimer = state.freezeTimer || 0;
+        this.fireballEffect = state.fireballEffect || false;
+        this.fireballTimer = state.fireballTimer || 0;
+        this.radius = state.radius || 8;
     }
 }

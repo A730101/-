@@ -177,6 +177,58 @@ h1 {
     color: #764ba2;
 }
 
+/* 魔王獎勵卡片樣式 */
+.reward-text {
+    font-size: 1.3em;
+    color: #ffd700;
+    margin-bottom: 30px;
+}
+
+.reward-cards {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.reward-card {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+    border: 3px solid #ffd700;
+    border-radius: 15px;
+    padding: 30px 20px;
+    width: 180px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
+}
+
+.reward-card:hover {
+    transform: translateY(-10px) scale(1.05);
+    border-color: #fff;
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.6);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
+}
+
+.card-icon {
+    font-size: 4em;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.card-name {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #ffd700;
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+.card-desc {
+    font-size: 0.9em;
+    color: #fff;
+    line-height: 1.4;
+}
+
 @media (max-width: 900px) {
     .container {
         padding: 15px;
@@ -205,5 +257,22 @@ h1 {
     .controls button {
         padding: 12px 24px;
         font-size: 1em;
+    }
+
+    .reward-cards {
+        gap: 15px;
+    }
+
+    .reward-card {
+        width: 140px;
+        padding: 20px 15px;
+    }
+
+    .card-icon {
+        font-size: 3em;
+    }
+
+    .card-name {
+        font-size: 1.2em;
     }
 }

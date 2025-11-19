@@ -36,8 +36,127 @@ class Game {
         // 初始化控制器
         this.initControls();
 
+        // 魔王獎勵相關
+        this.availableRewards = [];
+        this.initRewards();
+
         // 開始遊戲循環
         this.gameLoop();
+    }
+
+    /**
+     * 初始化可用的獎勵列表
+     */
+    initRewards() {
+        this.rewardPool = [
+            {
+                id: 'fireball_extend',
+                icon: '🔥',
+                name: '火球時間延長',
+                desc: '火球效果持續時間+50%',
+                apply: () => {
+                    // 延長所有球的火球效果時間
+                    this.balls.forEach(ball => {
+                        if (ball.fireballTimer > 0) {
+                            ball.fireballTimer = Math.floor(ball.fireballTimer * 1.5);
+                        } else {
+                            ball.enableFireball();
+                        }
+                    });
+                }
+            },
+            {
+                id: 'iceball_extend',
+                icon: '❄️',
+                name: '冰球時間延長',
+                desc: '冰球效果持續時間+50%',
+                apply: () => {
+                    this.balls.forEach(ball => {
+                        if (ball.freezeTimer > 0) {
+                            ball.freezeTimer = Math.floor(ball.freezeTimer * 1.5);
+                        } else {
+                            ball.enableFreeze();
+                        }
+                    });
+                }
+            },
+            {
+                id: 'multi_ball',
+                icon: '⚡',
+                name: '分身球',
+                desc: '立即獲得一個額外的球',
+                apply: () => {
+                    if (this.balls.length < 10) {
+                        const sourceBall = this.balls[0];
+                        const newBall = new Ball(this.canvas, sourceBall.x, sourceBall.y);
+                        newBall.dx = -sourceBall.dx + (Math.random() - 0.5) * 2;
+                        newBall.dy = sourceBall.dy;
+                        newBall.launched = true;
+                        this.balls.push(newBall);
+                    }
+                }
+            },
+            {
+                id: 'paddle_extend',
+                icon: '🟢',
+                name: '板子延長',
+                desc: '永久延長板子長度',
+                apply: () => {
+                    this.paddle.permanentExtend();
+                }
+            },
+            {
+                id: 'extra_life',
+                icon: '❤️',
+                name: '額外生命',
+                desc: '獲得一條額外生命',
+                apply: () => {
+                    this.lives++;
+                    this.updateLives();
+                }
+            },
+            {
+                id: 'speed_boost',
+                icon: '🚀',
+                name: '速度提升',
+                desc: '板子移動速度提升',
+                apply: () => {
+                    this.paddle.speedBoost();
+                }
+            },
+            {
+                id: 'shield',
+                icon: '🛡️',
+                name: '護盾',
+                desc: '下次掉球不會失去生命',
+                apply: () => {
+                    this.shield = true;
+                }
+            },
+            {
+                id: 'mega_ball',
+                icon: '💪',
+                name: '巨大球',
+                desc: '球的體積增大，更容易擊中',
+                apply: () => {
+                    this.balls.forEach(ball => {
+                        ball.radius = Math.min(ball.radius * 1.5, 15);
+                    });
+                }
+            },
+            {
+                id: 'combo_freeze_fire',
+                icon: '🔥❄️',
+                name: '冰火雙效',
+                desc: '同時獲得冰球和火球效果',
+                apply: () => {
+                    this.balls.forEach(ball => {
+                        ball.enableFreeze();
+                        ball.enableFireball();
+                    });
+                }
+            }
+        ];
     }
 
     /**
@@ -146,8 +265,13 @@ class Game {
                 this.score += result.score;
                 this.updateScore();
 
-                // 生成道具
-                this.powerupManager.trySpawn(result.hitBrick);
+                // 檢查是否擊敗了魔王
+                if (result.hitBrick && result.hitBrick instanceof BossBrick && !result.hitBrick.visible) {
+                    this.onBossDefeated();
+                } else {
+                    // 生成道具（普通磚塊）
+                    this.powerupManager.trySpawn(result.hitBrick);
+                }
             }
         });
 
@@ -171,7 +295,7 @@ class Game {
         collectedPowerups.forEach(type => this.applyPowerup(type));
 
         // 更新魔王磚塊
-        this.brickManager.updateBosses();
+        this.brickManager.updateBosses(this.paddle.x + this.paddle.width / 2);
 
         // 檢查魔王子彈碰撞
         if (this.brickManager.checkBossProjectileCollisions(this.paddle)) {
@@ -191,6 +315,60 @@ class Game {
         // 縮短板子作為懲罰
         this.paddle.shrink();
         this.showMessage('被火焰擊中！板子縮短！', '#ff4400');
+    }
+
+    /**
+     * 當魔王被擊敗時
+     */
+    onBossDefeated() {
+        // 暫停遊戲
+        this.paused = true;
+
+        // 從獎勵池中隨機選擇 3 個獎勵
+        this.availableRewards = [];
+        const poolCopy = [...this.rewardPool];
+
+        for (let i = 0; i < 3 && poolCopy.length > 0; i++) {
+            const randomIndex = Math.floor(Math.random() * poolCopy.length);
+            this.availableRewards.push(poolCopy[randomIndex]);
+            poolCopy.splice(randomIndex, 1);
+        }
+
+        // 顯示獎勵卡片
+        this.showRewardCards();
+    }
+
+    /**
+     * 顯示獎勵卡片
+     */
+    showRewardCards() {
+        for (let i = 0; i < 3; i++) {
+            const reward = this.availableRewards[i];
+            document.getElementById(`rewardIcon${i}`).textContent = reward.icon;
+            document.getElementById(`rewardName${i}`).textContent = reward.name;
+            document.getElementById(`rewardDesc${i}`).textContent = reward.desc;
+        }
+
+        document.getElementById('bossReward').classList.remove('hidden');
+    }
+
+    /**
+     * 選擇獎勵
+     */
+    selectReward(index) {
+        const reward = this.availableRewards[index];
+
+        // 應用獎勵效果
+        reward.apply();
+
+        // 顯示訊息
+        this.showMessage(`獲得：${reward.name}！`, '#ffd700');
+
+        // 隱藏獎勵畫面
+        document.getElementById('bossReward').classList.add('hidden');
+
+        // 繼續遊戲
+        this.paused = false;
     }
 
     /**
@@ -289,6 +467,16 @@ class Game {
      * 失去一條生命
      */
     loseLife() {
+        // 檢查是否有護盾
+        if (this.shield) {
+            this.shield = false;
+            this.showMessage('護盾保護！', '#00ffff');
+            // 重置球和板子但不扣生命
+            this.balls = [new Ball(this.canvas)];
+            this.paddle.reset();
+            return;
+        }
+
         this.lives--;
         this.updateLives();
 

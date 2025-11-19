@@ -103,6 +103,22 @@ class Paddle {
     }
 
     /**
+     * 永久延長球拍（魔王獎勵）
+     */
+    permanentExtend() {
+        this.defaultWidth = Math.min(this.defaultWidth + 20, 140);
+        this.width = Math.min(this.width + 20, 180);
+        this.maxWidth = Math.min(this.maxWidth + 20, 200);
+    }
+
+    /**
+     * 速度提升（魔王獎勵）
+     */
+    speedBoost() {
+        this.speed = Math.min(this.speed + 2, 12);
+    }
+
+    /**
      * 更新效果計時器
      */
     updateEffects() {

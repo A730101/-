@@ -9,13 +9,23 @@ class BossProjectile {
         this.height = 20;
         this.speed = 4;
         this.active = true;
+        this.dx = 0; // 橫向速度
+        this.dy = 4; // 縱向速度（默認向下）
+        this.tracking = false; // 是否追蹤玩家
     }
 
     /**
      * 移動子彈
      */
-    move() {
-        this.y += this.speed;
+    move(paddleX = null) {
+        if (this.tracking && paddleX !== null) {
+            // 簡單的追蹤效果：向玩家方向移動
+            const targetDx = paddleX - this.x;
+            this.dx = targetDx * 0.02; // 輕微追蹤
+        }
+
+        this.x += this.dx;
+        this.y += this.dy;
     }
 
     /**
@@ -82,7 +92,10 @@ class BossProjectile {
         return {
             x: this.x,
             y: this.y,
-            active: this.active
+            active: this.active,
+            dx: this.dx,
+            dy: this.dy,
+            tracking: this.tracking
         };
     }
 
@@ -93,6 +106,9 @@ class BossProjectile {
         this.x = state.x;
         this.y = state.y;
         this.active = state.active;
+        this.dx = state.dx || 0;
+        this.dy = state.dy || 4;
+        this.tracking = state.tracking || false;
     }
 }
 
@@ -110,10 +126,19 @@ class BossBrick {
         this.visible = true;
         this.points = health * 50; // 高分獎勵
 
+        // 移動相關
+        this.vx = 2; // 水平移動速度
+        this.canvasWidth = 800; // 畫布寬度
+        this.movementEnabled = true;
+
         // 攻擊相關
         this.attackCooldown = 0;
         this.attackInterval = 120; // 每 2 秒攻擊一次（60fps）
         this.projectiles = [];
+        this.attackPatterns = ['straight', 'spread', 'circle', 'tracking'];
+        this.currentPattern = this.attackPatterns[0];
+        this.patternChangeTimer = 0;
+        this.patternChangeInterval = 300; // 每 5 秒換攻擊模式
 
         // 動畫
         this.pulseTimer = 0;
@@ -126,10 +151,31 @@ class BossBrick {
     update() {
         if (!this.visible) return;
 
+        // 更新移動
+        if (this.movementEnabled) {
+            this.x += this.vx;
+
+            // 檢查邊界並反彈
+            if (this.x <= 0 || this.x + this.width >= this.canvasWidth) {
+                this.vx *= -1;
+                this.x = Math.max(0, Math.min(this.x, this.canvasWidth - this.width));
+            }
+        }
+
         // 更新脈動動畫
         this.pulseTimer += this.pulseDirection * 0.05;
         if (this.pulseTimer > 1 || this.pulseTimer < 0) {
             this.pulseDirection *= -1;
+        }
+
+        // 更新攻擊模式切換計時器
+        this.patternChangeTimer++;
+        if (this.patternChangeTimer >= this.patternChangeInterval) {
+            this.patternChangeTimer = 0;
+            // 隨機選擇下一個攻擊模式
+            const currentIndex = this.attackPatterns.indexOf(this.currentPattern);
+            const nextIndex = (currentIndex + 1) % this.attackPatterns.length;
+            this.currentPattern = this.attackPatterns[nextIndex];
         }
 
         // 更新攻擊冷卻
@@ -140,8 +186,15 @@ class BossBrick {
             this.attackCooldown = this.attackInterval;
         }
 
-        // 更新子彈
-        this.projectiles.forEach(p => p.move());
+        // 更新子彈（需要從外部傳入球拍位置）
+        // 這裡先不傳，在 updateBosses 中處理
+    }
+
+    /**
+     * 更新子彈位置（需要球拍位置用於追蹤）
+     */
+    updateProjectiles(paddleX) {
+        this.projectiles.forEach(p => p.move(paddleX));
 
         // 移除超出畫面的子彈
         this.projectiles = this.projectiles.filter(p => p.active && !p.isOutOfBounds(600));
@@ -151,12 +204,46 @@ class BossBrick {
      * 發射攻擊
      */
     attack() {
-        // 從魔王磚塊底部發射子彈
-        const projectile = new BossProjectile(
-            this.x + this.width / 2,
-            this.y + this.height
-        );
-        this.projectiles.push(projectile);
+        const centerX = this.x + this.width / 2;
+        const bottomY = this.y + this.height;
+
+        switch (this.currentPattern) {
+            case 'straight':
+                // 直線攻擊
+                const projectile = new BossProjectile(centerX, bottomY);
+                this.projectiles.push(projectile);
+                break;
+
+            case 'spread':
+                // 扇形散射攻擊（3 發）
+                for (let i = -1; i <= 1; i++) {
+                    const p = new BossProjectile(centerX + i * 20, bottomY);
+                    p.dx = i * 2; // 橫向偏移
+                    this.projectiles.push(p);
+                }
+                break;
+
+            case 'circle':
+                // 圓形攻擊（5 發）
+                const angles = 5;
+                for (let i = 0; i < angles; i++) {
+                    const angle = (Math.PI * 2 * i / angles) + Math.PI / 2; // 從底部開始
+                    const p = new BossProjectile(centerX, bottomY);
+                    p.dx = Math.cos(angle) * 3;
+                    p.dy = Math.sin(angle) * 3;
+                    this.projectiles.push(p);
+                }
+                break;
+
+            case 'tracking':
+                // 雙發追蹤攻擊
+                const p1 = new BossProjectile(centerX - 20, bottomY);
+                const p2 = new BossProjectile(centerX + 20, bottomY);
+                p1.tracking = true;
+                p2.tracking = true;
+                this.projectiles.push(p1, p2);
+                break;
+        }
     }
 
     /**
@@ -281,7 +368,10 @@ class BossBrick {
             maxHealth: this.maxHealth,
             health: this.health,
             visible: this.visible,
+            vx: this.vx,
             attackCooldown: this.attackCooldown,
+            currentPattern: this.currentPattern,
+            patternChangeTimer: this.patternChangeTimer,
             projectiles: this.projectiles.map(p => p.getState())
         };
     }
@@ -297,7 +387,10 @@ class BossBrick {
         this.maxHealth = state.maxHealth;
         this.health = state.health;
         this.visible = state.visible;
+        this.vx = state.vx || 2;
         this.attackCooldown = state.attackCooldown || 0;
+        this.currentPattern = state.currentPattern || 'straight';
+        this.patternChangeTimer = state.patternChangeTimer || 0;
 
         if (state.projectiles) {
             this.projectiles = state.projectiles.map(pState => {
