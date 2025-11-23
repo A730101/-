@@ -28,6 +28,7 @@ class Game {
         this.skillLevelManager = typeof SkillLevelManager !== 'undefined' ? new SkillLevelManager() : null;
         this.achievementManager = new AchievementManager();
         this.stats = new GameStats();
+        this.storyManager = typeof StoryManager !== 'undefined' ? new StoryManager() : null;
 
         // 道具效果計時器
         this.powerupTimers = {
@@ -71,6 +72,13 @@ class Game {
 
         // 開始遊戲循環
         this.gameLoop();
+
+        // 延遲觸發開場故事（讓遊戲先渲染一幀）
+        setTimeout(() => {
+            if (this.storyManager) {
+                this.storyManager.checkStoryTrigger(this.level, this.score, this.stats);
+            }
+        }, 500);
     }
 
     /**
@@ -766,6 +774,14 @@ class Game {
         // 隱藏關卡完成畫面
         document.getElementById('levelComplete').classList.add('hidden');
         this.paused = false;
+
+        // 檢查故事觸發
+        if (this.storyManager) {
+            const hasStory = this.storyManager.checkStoryTrigger(this.level, this.score, this.stats);
+            if (hasStory) {
+                this.paused = true; // 暫停遊戲等待故事結束
+            }
+        }
     }
 
     /**
