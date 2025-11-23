@@ -28,6 +28,18 @@ class Game {
         this.achievementManager = new AchievementManager();
         this.stats = new GameStats();
 
+        // 增強系統
+        this.ballEnhancements = [];
+        this.paddleEnhancement = typeof PaddleEnhancement !== 'undefined' ? new PaddleEnhancement(this.paddle) : null;
+        this.randomEventSystem = typeof RandomEventSystem !== 'undefined' ? new RandomEventSystem() : null;
+
+        // 為每個球初始化增強
+        if (typeof BallEnhancement !== 'undefined') {
+            this.balls.forEach(ball => {
+                this.ballEnhancements.push(new BallEnhancement(ball));
+            });
+        }
+
         // 初始化關卡
         this.brickManager.createLevel(this.level);
 
@@ -171,6 +183,31 @@ class Game {
         this.skillManager.update();
         this.stats.currentLevelTime++;
 
+        // 更新增強系統
+        if (this.paddleEnhancement) {
+            this.paddleEnhancement.update();
+        }
+
+        this.ballEnhancements.forEach((enhancement, index) => {
+            if (enhancement && this.balls[index]) {
+                enhancement.update();
+
+                // 處理磁力吸附
+                if (this.paddleEnhancement) {
+                    const magnetForce = this.paddleEnhancement.checkMagnetAttraction(this.balls[index]);
+                    if (magnetForce) {
+                        this.balls[index].dx += magnetForce.x;
+                        this.balls[index].dy += magnetForce.y;
+                    }
+                }
+            }
+        });
+
+        // 更新隨機事件系統
+        if (this.randomEventSystem) {
+            this.randomEventSystem.update();
+        }
+
         // 更新球拍
         if (this.keys['ArrowLeft']) {
             this.paddle.moveLeft();
@@ -237,6 +274,13 @@ class Game {
 
                     // 處理特殊磚塊
                     this.handleSpecialBrick(result.hitBrick);
+
+                    // 處理閃電鏈效果
+                    const ballIndex = this.balls.indexOf(ball);
+                    if (ballIndex >= 0 && this.ballEnhancements[ballIndex] &&
+                        this.ballEnhancements[ballIndex].hasLightning()) {
+                        this.applyLightningChain(result.hitBrick);
+                    }
                 } else {
                     this.audioManager.playBrickHit();
                 }
@@ -353,10 +397,23 @@ class Game {
         // 繪製護盾（在遊戲物件下方）
         this.skillManager.drawShield(this.ctx, this.canvas.width);
 
+        // 繪製球拍增強效果（磁力場等）
+        if (this.paddleEnhancement) {
+            this.paddleEnhancement.draw(this.ctx);
+        }
+
         // 繪製遊戲物件
         this.brickManager.draw(this.ctx);
         this.powerupManager.draw(this.ctx);
         this.paddle.draw(this.ctx);
+
+        // 繪製球的增強效果（尾迹等）
+        this.ballEnhancements.forEach((enhancement, index) => {
+            if (enhancement && this.balls[index]) {
+                enhancement.draw(this.ctx);
+            }
+        });
+
         this.balls.forEach(ball => ball.draw(this.ctx));
 
         // 繪製激光（在遊戲物件上方）
@@ -364,6 +421,11 @@ class Game {
 
         // 繪製粒子特效
         this.particleManager.draw(this.ctx);
+
+        // 繪製隨機事件通知
+        if (this.randomEventSystem) {
+            this.randomEventSystem.drawNotification(this.ctx, this.canvas.width);
+        }
 
         // 繪製連擊提示
         if (this.comboManager.getCombo() >= 5) {
@@ -433,6 +495,34 @@ class Game {
             case 'freeze':
                 this.balls.forEach(ball => ball.enableFreeze());
                 this.showMessage('冰球效果！', '#00ffff');
+                break;
+
+            case 'magnet':
+                if (this.paddleEnhancement) {
+                    this.paddleEnhancement.enableMagnet();
+                    this.showMessage('磁力吸附！', '#ff69b4');
+                }
+                break;
+
+            case 'penetrate':
+                this.ballEnhancements.forEach(enhancement => {
+                    if (enhancement) enhancement.enablePenetrate();
+                });
+                this.showMessage('穿透球！', '#ff8800');
+                break;
+
+            case 'giant':
+                this.ballEnhancements.forEach(enhancement => {
+                    if (enhancement) enhancement.enableGiant();
+                });
+                this.showMessage('巨大球！', '#00ff66');
+                break;
+
+            case 'lightning':
+                this.ballEnhancements.forEach(enhancement => {
+                    if (enhancement) enhancement.enableLightning();
+                });
+                this.showMessage('閃電鏈！', '#9400d3');
                 break;
         }
     }
@@ -850,5 +940,82 @@ class Game {
         this.audioManager.playLifeLost();
         this.comboManager.resetCombo();
         this.updateComboUI();
+    }
+
+    /**
+     * 應用閃電鏈效果
+     */
+    applyLightningChain(originBrick) {
+        const chainRange = 100; // 閃電鏈範圍
+        const maxChains = 3; // 最多連鎖3次
+
+        let currentBricks = [originBrick];
+        let chainedBricks = new Set([originBrick]);
+
+        for (let chain = 0; chain < maxChains; chain++) {
+            let nextBricks = [];
+
+            currentBricks.forEach(brick => {
+                // 找到範圍內的其他磚塊
+                this.brickManager.bricks.forEach(otherBrick => {
+                    if (otherBrick.visible && !chainedBricks.has(otherBrick)) {
+                        const dx = (brick.x + brick.width / 2) - (otherBrick.x + otherBrick.width / 2);
+                        const dy = (brick.y + brick.height / 2) - (otherBrick.y + otherBrick.height / 2);
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance <= chainRange) {
+                            // 傷害磚塊
+                            otherBrick.health--;
+                            if (otherBrick.health <= 0) {
+                                otherBrick.visible = false;
+                                this.score += otherBrick.points;
+                                this.stats.bricksDestroyed++;
+                                this.particleManager.createBrickExplosion(
+                                    otherBrick.x, otherBrick.y,
+                                    otherBrick.width, otherBrick.height,
+                                    otherBrick.color
+                                );
+                            } else {
+                                otherBrick.updateColor();
+                            }
+
+                            chainedBricks.add(otherBrick);
+                            nextBricks.push(otherBrick);
+
+                            // 繪製閃電效果
+                            this.drawLightningBolt(
+                                brick.x + brick.width / 2,
+                                brick.y + brick.height / 2,
+                                otherBrick.x + otherBrick.width / 2,
+                                otherBrick.y + otherBrick.height / 2
+                            );
+                        }
+                    }
+                });
+            });
+
+            currentBricks = nextBricks;
+            if (currentBricks.length === 0) break;
+        }
+
+        // 播放閃電音效
+        if (chainedBricks.size > 1) {
+            this.audioManager.playCombo(chainedBricks.size);
+        }
+    }
+
+    /**
+     * 繪製閃電線
+     */
+    drawLightningBolt(x1, y1, x2, y2) {
+        // 這個方法會在下一幀繪製，所以我們添加到粒子系統
+        // 暫時使用粒子特效來表示閃電
+        const segments = 5;
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const x = x1 + (x2 - x1) * t + (Math.random() - 0.5) * 20;
+            const y = y1 + (y2 - y1) * t + (Math.random() - 0.5) * 20;
+            this.particleManager.createComboEffect(x, y, 1);
+        }
     }
 }

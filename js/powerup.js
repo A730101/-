@@ -19,7 +19,11 @@ class PowerUp {
             fast: { color: '#ffff00', emoji: '🟡', name: '加速球' },
             multi: { color: '#ff00ff', emoji: '🟣', name: '多球' },
             life: { color: '#ffd700', emoji: '⭐', name: '額外生命' },
-            freeze: { color: '#00ffff', emoji: '❄️', name: '冰球' }
+            freeze: { color: '#00ffff', emoji: '❄️', name: '冰球' },
+            magnet: { color: '#ff69b4', emoji: '🧲', name: '磁力吸附' },
+            penetrate: { color: '#ff8800', emoji: '⚡', name: '穿透球' },
+            giant: { color: '#00ff66', emoji: '🎾', name: '巨大球' },
+            lightning: { color: '#9400d3', emoji: '⚡', name: '閃電鏈' }
         };
 
         this.config = this.types[type] || this.types.extend;
@@ -131,7 +135,8 @@ class PowerUpManager {
      */
     trySpawn(brick) {
         if (Math.random() < this.dropChance) {
-            const types = ['extend', 'shrink', 'slow', 'fast', 'multi', 'life', 'freeze'];
+            const types = ['extend', 'shrink', 'slow', 'fast', 'multi', 'life', 'freeze',
+                          'magnet', 'penetrate', 'giant', 'lightning'];
             const randomType = types[Math.floor(Math.random() * types.length)];
 
             const powerup = new PowerUp(
