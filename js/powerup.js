@@ -13,17 +13,27 @@ class PowerUp {
 
         // 道具類型配置
         this.types = {
-            extend: { color: '#00ff00', emoji: '🟢', name: '延長板子' },
-            shrink: { color: '#ff0000', emoji: '🔴', name: '縮短板子' },
-            slow: { color: '#0000ff', emoji: '🔵', name: '減速球' },
-            fast: { color: '#ffff00', emoji: '🟡', name: '加速球' },
-            multi: { color: '#ff00ff', emoji: '🟣', name: '多球' },
-            life: { color: '#ffd700', emoji: '⭐', name: '額外生命' },
-            freeze: { color: '#00ffff', emoji: '❄️', name: '冰球' },
-            magnet: { color: '#ff69b4', emoji: '🧲', name: '磁力吸附' },
-            penetrate: { color: '#ff8800', emoji: '⚡', name: '穿透球' },
-            giant: { color: '#00ff66', emoji: '🎾', name: '巨大球' },
-            lightning: { color: '#9400d3', emoji: '⚡', name: '閃電鏈' }
+            extend: { color: '#00ff00', emoji: '🟢', name: '延長板子', rarity: 'common' },
+            shrink: { color: '#ff0000', emoji: '🔴', name: '縮短板子', rarity: 'common' },
+            slow: { color: '#0000ff', emoji: '🔵', name: '減速球', rarity: 'common' },
+            fast: { color: '#ffff00', emoji: '🟡', name: '加速球', rarity: 'common' },
+            multi: { color: '#ff00ff', emoji: '🟣', name: '多球', rarity: 'uncommon' },
+            life: { color: '#ffd700', emoji: '⭐', name: '額外生命', rarity: 'rare' },
+            freeze: { color: '#00ffff', emoji: '❄️', name: '冰球', rarity: 'uncommon' },
+            magnet: { color: '#ff69b4', emoji: '🧲', name: '磁力吸附', rarity: 'uncommon' },
+            penetrate: { color: '#ff8800', emoji: '⚡', name: '穿透球', rarity: 'uncommon' },
+            giant: { color: '#00ff66', emoji: '🎾', name: '巨大球', rarity: 'uncommon' },
+            lightning: { color: '#9400d3', emoji: '⚡', name: '閃電鏈', rarity: 'rare' },
+            // 新道具
+            triple: { color: '#ff1493', emoji: '🔮', name: '三倍球', rarity: 'rare' },
+            explosive: { color: '#ff4500', emoji: '💣', name: '爆炸球', rarity: 'rare' },
+            ghost: { color: '#9370db', emoji: '👻', name: '幽靈球', rarity: 'rare' },
+            fire: { color: '#ff6347', emoji: '🔥', name: '火焰球', rarity: 'rare' },
+            sticky: { color: '#ffa500', emoji: '🎯', name: '黏性板', rarity: 'uncommon' },
+            invincible: { color: '#ffd700', emoji: '🛡️', name: '無敵', rarity: 'epic' },
+            coin: { color: '#ffff00', emoji: '💰', name: '金幣', rarity: 'common' },
+            doublescore: { color: '#ff69ff', emoji: '⭐', name: '雙倍分數', rarity: 'rare' },
+            random: { color: '#rainbow', emoji: '🎲', name: '隨機增益', rarity: 'epic' }
         };
 
         this.config = this.types[type] || this.types.extend;
@@ -135,9 +145,7 @@ class PowerUpManager {
      */
     trySpawn(brick) {
         if (Math.random() < this.dropChance) {
-            const types = ['extend', 'shrink', 'slow', 'fast', 'multi', 'life', 'freeze',
-                          'magnet', 'penetrate', 'giant', 'lightning'];
-            const randomType = types[Math.floor(Math.random() * types.length)];
+            const randomType = this.getRandomPowerupType();
 
             const powerup = new PowerUp(
                 brick.x + brick.width / 2 - 15,
@@ -146,6 +154,34 @@ class PowerUpManager {
             );
 
             this.powerups.push(powerup);
+        }
+    }
+
+    /**
+     * 根據稀有度隨機選擇道具類型
+     */
+    getRandomPowerupType() {
+        const rand = Math.random();
+
+        // 定義稀有度權重
+        // common: 50%, uncommon: 30%, rare: 15%, epic: 5%
+        const commonTypes = ['extend', 'shrink', 'slow', 'fast', 'coin'];
+        const uncommonTypes = ['multi', 'freeze', 'magnet', 'penetrate', 'giant', 'sticky'];
+        const rareTypes = ['life', 'lightning', 'triple', 'explosive', 'ghost', 'fire', 'doublescore'];
+        const epicTypes = ['invincible', 'random'];
+
+        if (rand < 0.5) {
+            // 50% - common
+            return commonTypes[Math.floor(Math.random() * commonTypes.length)];
+        } else if (rand < 0.8) {
+            // 30% - uncommon
+            return uncommonTypes[Math.floor(Math.random() * uncommonTypes.length)];
+        } else if (rand < 0.95) {
+            // 15% - rare
+            return rareTypes[Math.floor(Math.random() * rareTypes.length)];
+        } else {
+            // 5% - epic
+            return epicTypes[Math.floor(Math.random() * epicTypes.length)];
         }
     }
 

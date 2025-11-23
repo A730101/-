@@ -263,6 +263,38 @@ h1 {
     transition: width 0.1s linear;
 }
 
+/* 技能等級顯示 */
+.skill-level {
+    position: absolute;
+    top: 5px;
+    right: 8px;
+    background: rgba(255, 215, 0, 0.9);
+    color: #333;
+    font-size: 0.7em;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 技能經驗值條 */
+.skill-exp-container {
+    position: absolute;
+    bottom: 3px;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.skill-exp-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00ff88 0%, #00c8ff 100%);
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+}
+
 /* 成就通知 */
 .achievement-notification {
     position: fixed;

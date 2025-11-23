@@ -25,8 +25,19 @@ class Game {
         this.particleManager = new ParticleManager();
         this.comboManager = new ComboManager();
         this.skillManager = new SkillManager();
+        this.skillLevelManager = typeof SkillLevelManager !== 'undefined' ? new SkillLevelManager() : null;
         this.achievementManager = new AchievementManager();
         this.stats = new GameStats();
+
+        // 道具效果計時器
+        this.powerupTimers = {
+            invincible: 0,
+            doublescore: 0,
+            sticky: false,
+            fire: [],
+            explosive: false,
+            ghost: false
+        };
 
         // 增強系統
         this.ballEnhancements = [];
@@ -98,28 +109,43 @@ class Game {
 
             // Q 鍵使用時間減速技能
             if (e.key === 'q' || e.key === 'Q') {
-                if (this.skillManager.useSkill('slowtime')) {
+                const success = this.skillLevelManager ?
+                    this.skillManager.useSkillWithLevel('slowtime', this.skillLevelManager) :
+                    this.skillManager.useSkill('slowtime');
+
+                if (success) {
                     this.audioManager.resume();
                     this.particleManager.createSkillEffect(this.paddle.x + this.paddle.width / 2, this.paddle.y, 'slowtime');
                     this.stats.skillsUsed++;
+                    this.updateSkillsUI();
                 }
             }
 
             // W 鍵使用激光技能
             if (e.key === 'w' || e.key === 'W') {
-                if (this.skillManager.useSkill('laser')) {
+                const success = this.skillLevelManager ?
+                    this.skillManager.useSkillWithLevel('laser', this.skillLevelManager) :
+                    this.skillManager.useSkill('laser');
+
+                if (success) {
                     this.audioManager.resume();
                     this.particleManager.createSkillEffect(this.paddle.x + this.paddle.width / 2, this.paddle.y, 'laser');
                     this.stats.skillsUsed++;
+                    this.updateSkillsUI();
                 }
             }
 
             // E 鍵使用護盾技能
             if (e.key === 'e' || e.key === 'E') {
-                if (this.skillManager.useSkill('shield')) {
+                const success = this.skillLevelManager ?
+                    this.skillManager.useSkillWithLevel('shield', this.skillLevelManager) :
+                    this.skillManager.useSkill('shield');
+
+                if (success) {
                     this.audioManager.resume();
                     this.particleManager.createSkillEffect(this.paddle.x + this.paddle.width / 2, this.paddle.y, 'shield');
                     this.stats.skillsUsed++;
+                    this.updateSkillsUI();
                 }
             }
 
@@ -256,9 +282,30 @@ class Game {
             if (result.score > 0) {
                 // 連擊系統
                 const combo = this.comboManager.addCombo();
-                const multipliedScore = this.comboManager.calculateScore(result.score);
+                let multipliedScore = this.comboManager.calculateScore(result.score);
+
+                // 應用雙倍分數效果
+                if (this.powerupTimers.doublescore > 0) {
+                    multipliedScore *= 2;
+                }
+
                 this.score += multipliedScore;
                 this.updateScore();
+
+                // 技能經驗值獲取
+                if (this.skillLevelManager) {
+                    const expAmount = Math.max(1, Math.floor(result.score / 10));
+                    ['slowtime', 'laser', 'shield'].forEach(skillName => {
+                        const leveledUp = this.skillLevelManager.addExp(skillName, expAmount);
+                        if (leveledUp) {
+                            const level = this.skillLevelManager.getLevel(skillName);
+                            const desc = this.skillLevelManager.getLevelDescription(skillName, level);
+                            this.showMessage(`技能升級！${skillName} Lv.${level} - ${desc}`, '#ffff00');
+                            this.audioManager.playLevelUp();
+                        }
+                    });
+                    this.updateSkillsUI();
+                }
 
                 // 統計
                 this.stats.bricksDestroyed++;
@@ -368,10 +415,50 @@ class Game {
             this.showAchievement(achievement);
         });
 
+        // 更新道具計時器
+        this.updatePowerupTimers();
+
         // 檢查關卡完成
         if (this.brickManager.allDestroyed()) {
             this.levelComplete();
         }
+    }
+
+    /**
+     * 更新道具計時器
+     */
+    updatePowerupTimers() {
+        // 無敵時間
+        if (this.powerupTimers.invincible > 0) {
+            this.powerupTimers.invincible--;
+            if (this.powerupTimers.invincible === 0) {
+                this.showMessage('無敵結束', '#888');
+            }
+        }
+
+        // 雙倍分數
+        if (this.powerupTimers.doublescore > 0) {
+            this.powerupTimers.doublescore--;
+            if (this.powerupTimers.doublescore === 0) {
+                this.showMessage('雙倍分數結束', '#888');
+            }
+        }
+
+        // 爆炸球
+        if (this.powerupTimers.explosive > 0) {
+            this.powerupTimers.explosive--;
+        }
+
+        // 幽靈球
+        if (this.powerupTimers.ghost > 0) {
+            this.powerupTimers.ghost--;
+        }
+
+        // 火焰球
+        this.powerupTimers.fire = this.powerupTimers.fire.filter(fire => {
+            fire.timer--;
+            return fire.timer > 0;
+        });
     }
 
     /**
@@ -524,6 +611,85 @@ class Game {
                 });
                 this.showMessage('閃電鏈！', '#9400d3');
                 break;
+
+            // 新道具
+            case 'triple':
+                // 一次增加3個球
+                if (this.balls.length < 10) {
+                    for (let i = 0; i < 3; i++) {
+                        const sourceBall = this.balls[0];
+                        const newBall = new Ball(this.canvas, sourceBall.x, sourceBall.y);
+                        newBall.dx = (Math.random() - 0.5) * 8;
+                        newBall.dy = -Math.abs(newBall.dy);
+                        newBall.launched = true;
+                        this.balls.push(newBall);
+
+                        if (typeof BallEnhancement !== 'undefined') {
+                            this.ballEnhancements.push(new BallEnhancement(newBall));
+                        }
+                    }
+                    this.showMessage('三倍球！', '#ff1493');
+                }
+                break;
+
+            case 'explosive':
+                // 爆炸球效果
+                this.powerupTimers.explosive = 600; // 10秒
+                this.showMessage('爆炸球！', '#ff4500');
+                break;
+
+            case 'ghost':
+                // 幽靈球（穿牆）
+                this.powerupTimers.ghost = 600; // 10秒
+                this.showMessage('幽靈球！', '#9370db');
+                break;
+
+            case 'fire':
+                // 火焰球
+                this.balls.forEach(ball => {
+                    this.powerupTimers.fire.push({ ball: ball, timer: 600, damage: 2 });
+                });
+                this.showMessage('火焰球！', '#ff6347');
+                break;
+
+            case 'sticky':
+                // 黏性板
+                this.powerupTimers.sticky = true;
+                this.showMessage('黏性板！', '#ffa500');
+                break;
+
+            case 'invincible':
+                // 無敵時間
+                this.powerupTimers.invincible = 360; // 6秒
+                this.showMessage('無敵時間！', '#ffd700');
+                break;
+
+            case 'coin':
+                // 金幣獎勵
+                const coinBonus = 500 + this.level * 100;
+                this.score += coinBonus;
+                this.updateScore();
+                this.showMessage(`+${coinBonus} 分！`, '#ffff00');
+                break;
+
+            case 'doublescore':
+                // 雙倍分數
+                this.powerupTimers.doublescore = 600; // 10秒
+                this.showMessage('雙倍分數！', '#ff69ff');
+                break;
+
+            case 'random':
+                // 隨機正面效果
+                const positiveEffects = ['extend', 'multi', 'life', 'slow', 'magnet', 'penetrate', 'giant', 'lightning'];
+                const randomEffect = positiveEffects[Math.floor(Math.random() * positiveEffects.length)];
+                this.applyPowerup(randomEffect);
+                this.showMessage('隨機增益！', 'rainbow');
+                break;
+        }
+
+        // 播放音效
+        if (this.audioManager) {
+            this.audioManager.playPowerUp();
         }
     }
 
@@ -816,6 +982,37 @@ class Game {
                 const cooldownEl = btn.querySelector('.cooldown');
                 if (cooldownEl) {
                     cooldownEl.style.width = `${progress * 100}%`;
+                }
+
+                // 更新技能等級顯示
+                if (this.skillLevelManager) {
+                    const skillInfo = this.skillLevelManager.getSkillInfo(skillName);
+                    if (skillInfo) {
+                        // 更新等級標籤
+                        let levelEl = btn.querySelector('.skill-level');
+                        if (!levelEl) {
+                            levelEl = document.createElement('span');
+                            levelEl.className = 'skill-level';
+                            btn.appendChild(levelEl);
+                        }
+                        levelEl.textContent = `Lv.${skillInfo.level}`;
+
+                        // 更新經驗值條
+                        let expBarEl = btn.querySelector('.skill-exp-bar');
+                        if (!expBarEl) {
+                            const expContainer = document.createElement('div');
+                            expContainer.className = 'skill-exp-container';
+                            expBarEl = document.createElement('div');
+                            expBarEl.className = 'skill-exp-bar';
+                            expContainer.appendChild(expBarEl);
+                            btn.appendChild(expContainer);
+                        }
+                        expBarEl.style.width = `${skillInfo.progress * 100}%`;
+
+                        // 更新 title 顯示技能詳情
+                        const desc = this.skillLevelManager.getLevelDescription(skillName, skillInfo.level);
+                        btn.title = `${desc}\nLv.${skillInfo.level} | EXP: ${skillInfo.exp}/${skillInfo.requiredExp}`;
+                    }
                 }
             }
         });
