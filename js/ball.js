@@ -38,8 +38,45 @@ class Ball {
      */
     move() {
         if (this.launched) {
+            // 檢查並修正極端角度
+            this.normalizeAngle();
+
             this.x += this.dx;
             this.y += this.dy;
+        }
+    }
+
+    /**
+     * 規範化球的移動角度，防止太平或太陡
+     */
+    normalizeAngle() {
+        // 計算當前角度
+        const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+
+        // 如果速度太小，重置為預設速度
+        if (speed < 1) {
+            this.dx = 0;
+            this.dy = -this.defaultSpeed;
+            return;
+        }
+
+        // 計算角度（弧度）
+        const angle = Math.atan2(this.dy, this.dx);
+
+        // 限制最小垂直速度分量（防止太平）
+        const minVerticalSpeed = 1.0;
+        if (Math.abs(this.dy) < minVerticalSpeed) {
+            // 重新計算速度，確保有最小垂直分量
+            const newAngle = this.dy > 0 ? Math.PI / 6 : -Math.PI / 6; // 30度
+            this.dx = speed * Math.cos(newAngle) * (this.dx > 0 ? 1 : -1);
+            this.dy = speed * Math.sin(newAngle) * (this.dy > 0 ? 1 : -1);
+        }
+
+        // 限制最小水平速度分量（防止太陡）
+        const minHorizontalSpeed = 0.5;
+        if (Math.abs(this.dx) < minHorizontalSpeed && Math.abs(this.dy) > minVerticalSpeed) {
+            // 添加小的水平分量
+            this.dx = minHorizontalSpeed * (Math.random() > 0.5 ? 1 : -1);
         }
     }
 
@@ -84,12 +121,22 @@ class Ball {
         if (this.x - this.radius < 0 || this.x + this.radius > this.canvas.width) {
             this.dx = -this.dx;
             this.x = this.x < this.canvas.width / 2 ? this.radius : this.canvas.width - this.radius;
+
+            // 防止完全垂直運動 - 添加小角度偏移
+            if (Math.abs(this.dx) < 0.5) {
+                this.dx = (Math.random() > 0.5 ? 1 : -1) * 1.5;
+            }
         }
 
         // 上牆
         if (this.y - this.radius < 0) {
             this.dy = -this.dy;
             this.y = this.radius;
+
+            // 防止完全水平運動 - 添加小角度偏移
+            if (Math.abs(this.dy) < 0.5) {
+                this.dy = 1.5;
+            }
         }
     }
 
@@ -106,10 +153,15 @@ class Ball {
             // 計算擊球點相對位置（-1 到 1）
             const hitPos = (this.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
 
-            // 根據擊球點調整反彈角度
+            // 根據擊球點調整反彈角度（限制在 -60 到 60 度之間）
             const angle = hitPos * 60 * Math.PI / 180; // 最大 60 度
             this.dx = this.speed * Math.sin(angle);
             this.dy = -this.speed * Math.cos(angle);
+
+            // 確保有最小垂直速度，避免太平
+            if (Math.abs(this.dy) < 2) {
+                this.dy = -2;
+            }
 
             // 確保球在板子上方
             this.y = paddle.y - this.radius;
@@ -131,10 +183,20 @@ class Ball {
      */
     bounceX() {
         this.dx = -this.dx;
+
+        // 防止完全垂直運動 - 添加小角度偏移
+        if (Math.abs(this.dx) < 0.5) {
+            this.dx = (Math.random() > 0.5 ? 1 : -1) * 1.5;
+        }
     }
 
     bounceY() {
         this.dy = -this.dy;
+
+        // 防止完全水平運動 - 添加小角度偏移
+        if (Math.abs(this.dy) < 0.5) {
+            this.dy = (this.dy > 0 ? 1 : -1) * 1.5;
+        }
     }
 
     /**
