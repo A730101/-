@@ -20,6 +20,14 @@ class Game {
         this.powerupManager = new PowerUpManager();
         this.storage = new GameStorage();
 
+        // 新系統
+        this.audioManager = new AudioManager();
+        this.particleManager = new ParticleManager();
+        this.comboManager = new ComboManager();
+        this.skillManager = new SkillManager();
+        this.achievementManager = new AchievementManager();
+        this.stats = new GameStats();
+
         // 初始化關卡
         this.brickManager.createLevel(this.level);
 
@@ -32,6 +40,8 @@ class Game {
 
         // 初始化 UI
         this.updatePattern();
+        this.updateComboUI();
+        this.updateSkillsUI();
 
         // 初始化控制器
         this.initControls();
@@ -72,6 +82,39 @@ class Game {
             // R 鍵重新開始
             if (e.key === 'r' || e.key === 'R') {
                 this.restart();
+            }
+
+            // Q 鍵使用時間減速技能
+            if (e.key === 'q' || e.key === 'Q') {
+                if (this.skillManager.useSkill('slowtime')) {
+                    this.audioManager.resume();
+                    this.particleManager.createSkillEffect(this.paddle.x + this.paddle.width / 2, this.paddle.y, 'slowtime');
+                    this.stats.skillsUsed++;
+                }
+            }
+
+            // W 鍵使用激光技能
+            if (e.key === 'w' || e.key === 'W') {
+                if (this.skillManager.useSkill('laser')) {
+                    this.audioManager.resume();
+                    this.particleManager.createSkillEffect(this.paddle.x + this.paddle.width / 2, this.paddle.y, 'laser');
+                    this.stats.skillsUsed++;
+                }
+            }
+
+            // E 鍵使用護盾技能
+            if (e.key === 'e' || e.key === 'E') {
+                if (this.skillManager.useSkill('shield')) {
+                    this.audioManager.resume();
+                    this.particleManager.createSkillEffect(this.paddle.x + this.paddle.width / 2, this.paddle.y, 'shield');
+                    this.stats.skillsUsed++;
+                }
+            }
+
+            // M 鍵切換音效
+            if (e.key === 'm' || e.key === 'M') {
+                const enabled = this.audioManager.toggle();
+                this.showMessage(enabled ? '音效已開啟' : '音效已關閉', '#ffffff');
             }
         });
 
@@ -119,6 +162,15 @@ class Game {
      * 更新遊戲狀態
      */
     update() {
+        // 獲取時間減速效果
+        const timeScale = this.skillManager.getSlowTimeEffect();
+
+        // 更新所有系統
+        this.particleManager.update();
+        this.comboManager.update();
+        this.skillManager.update();
+        this.stats.currentLevelTime++;
+
         // 更新球拍
         if (this.keys['ArrowLeft']) {
             this.paddle.moveLeft();
@@ -132,22 +184,79 @@ class Game {
         this.paddle.move();
         this.paddle.updateEffects();
 
-        // 更新球
+        // 更新球（應用時間減速）
         this.balls.forEach(ball => {
             ball.followPaddle(this.paddle);
+
+            // 應用時間減速效果
+            const originalDx = ball.dx;
+            const originalDy = ball.dy;
+            ball.dx *= timeScale;
+            ball.dy *= timeScale;
+
             ball.move();
             ball.checkWallCollision();
-            ball.checkPaddleCollision(this.paddle);
+
+            // 恢復原始速度
+            ball.dx = originalDx;
+            ball.dy = originalDy;
+
+            // 檢查球拍碰撞
+            if (ball.checkPaddleCollision(this.paddle)) {
+                this.audioManager.playPaddleHit();
+                this.particleManager.createPaddleHitEffect(ball.x, ball.y);
+            }
+
+            // 檢查護盾碰撞
+            if (this.skillManager.checkShieldCollision(ball)) {
+                this.audioManager.playPaddleHit();
+            }
+
             ball.updateEffects();
 
             // 檢查磚塊碰撞
             const result = this.brickManager.checkCollisions(ball);
             if (result.score > 0) {
-                this.score += result.score;
+                // 連擊系統
+                const combo = this.comboManager.addCombo();
+                const multipliedScore = this.comboManager.calculateScore(result.score);
+                this.score += multipliedScore;
                 this.updateScore();
 
+                // 統計
+                this.stats.bricksDestroyed++;
+
+                // 播放音效
+                if (result.hitBrick && !result.hitBrick.visible) {
+                    this.audioManager.playBrickDestroy();
+                    this.particleManager.createBrickExplosion(
+                        result.hitBrick.x, result.hitBrick.y,
+                        result.hitBrick.width, result.hitBrick.height,
+                        result.hitBrick.baseColor || result.hitBrick.color
+                    );
+
+                    // 處理特殊磚塊
+                    this.handleSpecialBrick(result.hitBrick);
+                } else {
+                    this.audioManager.playBrickHit();
+                }
+
+                // 連擊特效和音效
+                if (combo >= 5) {
+                    this.audioManager.playCombo(combo);
+                    this.particleManager.createComboEffect(ball.x, ball.y, combo);
+                }
+
+                this.updateComboUI();
+
                 // 生成道具
-                this.powerupManager.trySpawn(result.hitBrick);
+                const dropChance = result.hitBrick && result.hitBrick.type === 'gold' ?
+                    result.hitBrick.powerupDropChance : this.powerupManager.dropChance;
+
+                if (Math.random() < dropChance) {
+                    this.powerupManager.trySpawn(result.hitBrick);
+                    this.audioManager.playPowerUpSpawn();
+                }
             }
         });
 
@@ -168,7 +277,27 @@ class Game {
 
         // 檢查道具碰撞
         const collectedPowerups = this.powerupManager.checkCollisions(this.paddle);
-        collectedPowerups.forEach(type => this.applyPowerup(type));
+        collectedPowerups.forEach(type => {
+            this.applyPowerup(type);
+            this.audioManager.playPowerUpCollect();
+            this.stats.powerupsCollected++;
+            if (type === 'life') {
+                this.stats.lifeCount++;
+            }
+        });
+
+        // 檢查激光技能
+        if (this.skillManager.isSkillActive('laser')) {
+            this.brickManager.bricks.forEach(brick => {
+                if (brick.visible && this.skillManager.checkLaserHit(brick, this.paddle.x, this.paddle.width)) {
+                    brick.visible = false;
+                    this.score += brick.points;
+                    this.stats.bricksDestroyed++;
+                    this.particleManager.createBrickExplosion(brick.x, brick.y, brick.width, brick.height, brick.color);
+                    this.audioManager.playBrickDestroy();
+                }
+            });
+        }
 
         // 更新魔王磚塊
         this.brickManager.updateBosses();
@@ -177,6 +306,23 @@ class Game {
         if (this.brickManager.checkBossProjectileCollisions(this.paddle)) {
             this.onBossProjectileHit();
         }
+
+        // 更新技能 UI
+        this.updateSkillsUI();
+
+        // 檢查成就
+        const newAchievements = this.achievementManager.checkAchievements({
+            score: this.score,
+            level: this.level,
+            lives: this.lives,
+            stats: this.stats.getState(),
+            combo: this.comboManager.getState()
+        });
+
+        // 顯示新解鎖的成就
+        newAchievements.forEach(achievement => {
+            this.showAchievement(achievement);
+        });
 
         // 檢查關卡完成
         if (this.brickManager.allDestroyed()) {
@@ -204,11 +350,25 @@ class Game {
         // 繪製星空背景
         this.drawStars();
 
+        // 繪製護盾（在遊戲物件下方）
+        this.skillManager.drawShield(this.ctx, this.canvas.width);
+
         // 繪製遊戲物件
         this.brickManager.draw(this.ctx);
         this.powerupManager.draw(this.ctx);
         this.paddle.draw(this.ctx);
         this.balls.forEach(ball => ball.draw(this.ctx));
+
+        // 繪製激光（在遊戲物件上方）
+        this.skillManager.drawLaser(this.ctx, this.paddle.x, this.paddle.y, this.paddle.width, this.canvas.height);
+
+        // 繪製粒子特效
+        this.particleManager.draw(this.ctx);
+
+        // 繪製連擊提示
+        if (this.comboManager.getCombo() >= 5) {
+            this.drawComboText();
+        }
     }
 
     /**
@@ -291,6 +451,7 @@ class Game {
     loseLife() {
         this.lives--;
         this.updateLives();
+        this.loseLifeEffects();
 
         if (this.lives <= 0) {
             this.endGame();
@@ -298,6 +459,7 @@ class Game {
             // 重置球和板子
             this.balls = [new Ball(this.canvas)];
             this.paddle.reset();
+            this.stats.noDamageStreak = 0; // 重置無傷連勝
         }
     }
 
@@ -306,6 +468,20 @@ class Game {
      */
     levelComplete() {
         this.paused = true;
+
+        // 播放關卡完成音效
+        this.audioManager.playLevelComplete();
+
+        // 更新統計
+        this.stats.noDamageStreak++;
+        const levelTime = this.stats.currentLevelTime / 60; // 轉換為秒
+        if (levelTime < this.stats.fastestClear) {
+            this.stats.fastestClear = levelTime;
+        }
+        if (this.stats.currentLevelBalls === 1) {
+            this.stats.oneBallClear = true;
+        }
+
         document.getElementById('levelScore').textContent = this.score;
 
         // 顯示下一關的模式
@@ -327,7 +503,9 @@ class Game {
         this.balls = [new Ball(this.canvas)];
         this.paddle.reset();
         this.powerupManager.clear();
+        this.particleManager.clear();
         this.brickManager.createLevel(this.level);
+        this.stats.resetLevelStats();
 
         // 隱藏關卡完成畫面
         document.getElementById('levelComplete').classList.add('hidden');
@@ -339,6 +517,7 @@ class Game {
      */
     endGame() {
         this.gameOver = true;
+        this.audioManager.playGameOver();
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('gameOver').classList.remove('hidden');
     }
@@ -361,11 +540,19 @@ class Game {
         this.powerupManager = new PowerUpManager();
         this.brickManager.createLevel(this.level);
 
+        // 重置新系統
+        this.particleManager.clear();
+        this.comboManager.resetCombo();
+        this.skillManager.reset();
+        this.stats = new GameStats();
+
         // 更新 UI
         this.updateScore();
         this.updateLives();
         this.updateLevel();
         this.updatePattern();
+        this.updateComboUI();
+        this.updateSkillsUI();
 
         // 隱藏所有覆蓋層
         document.getElementById('gameOver').classList.add('hidden');
@@ -407,7 +594,11 @@ class Game {
             paddle: this.paddle.getState(),
             balls: this.balls.map(ball => ball.getState()),
             bricks: this.brickManager.getState(),
-            powerups: this.powerupManager.getState()
+            powerups: this.powerupManager.getState(),
+            combo: this.comboManager.getState(),
+            skills: this.skillManager.getState(),
+            stats: this.stats.getState(),
+            achievements: this.achievementManager.getState()
         };
 
         if (this.storage.save(gameState)) {
@@ -445,11 +636,30 @@ class Game {
         this.brickManager.loadState(gameState.bricks);
         this.powerupManager.loadState(gameState.powerups);
 
+        // 載入新系統狀態
+        if (gameState.combo) {
+            this.comboManager.loadState(gameState.combo);
+        }
+        if (gameState.skills) {
+            this.skillManager.loadState(gameState.skills);
+        }
+        if (gameState.stats) {
+            this.stats.loadState(gameState.stats);
+        }
+        if (gameState.achievements) {
+            this.achievementManager.loadState(gameState.achievements);
+        }
+
+        // 清空粒子
+        this.particleManager.clear();
+
         // 更新 UI
         this.updateScore();
         this.updateLives();
         this.updateLevel();
         this.updatePattern();
+        this.updateComboUI();
+        this.updateSkillsUI();
 
         // 重置遊戲狀態
         this.paused = false;
@@ -481,5 +691,164 @@ class Game {
     updatePattern() {
         const patternName = this.brickManager.getPatternName(this.level);
         document.getElementById('pattern').textContent = patternName;
+    }
+
+    /**
+     * 更新連擊 UI
+     */
+    updateComboUI() {
+        const comboEl = document.getElementById('combo');
+        const multiplierEl = document.getElementById('multiplier');
+
+        if (comboEl) {
+            comboEl.textContent = this.comboManager.getCombo();
+        }
+        if (multiplierEl) {
+            multiplierEl.textContent = this.comboManager.getMultiplier().toFixed(1) + 'x';
+        }
+    }
+
+    /**
+     * 更新技能 UI
+     */
+    updateSkillsUI() {
+        ['slowtime', 'laser', 'shield'].forEach(skillName => {
+            const btn = document.getElementById(`skill-${skillName}`);
+            if (btn) {
+                const progress = this.skillManager.getCooldownProgress(skillName);
+                const isActive = this.skillManager.isSkillActive(skillName);
+
+                // 更新按鈕狀態
+                btn.disabled = progress < 1;
+                btn.classList.toggle('active', isActive);
+
+                // 更新冷卻顯示（如果有）
+                const cooldownEl = btn.querySelector('.cooldown');
+                if (cooldownEl) {
+                    cooldownEl.style.width = `${progress * 100}%`;
+                }
+            }
+        });
+    }
+
+    /**
+     * 繪製連擊文字
+     */
+    drawComboText() {
+        const combo = this.comboManager.getCombo();
+        const x = this.canvas.width / 2;
+        const y = 100;
+
+        this.ctx.save();
+        this.ctx.font = 'bold 48px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+
+        // 外發光
+        this.ctx.shadowBlur = 20;
+        this.ctx.shadowColor = '#ffff00';
+
+        // 描邊
+        this.ctx.strokeStyle = '#ff6600';
+        this.ctx.lineWidth = 4;
+        this.ctx.strokeText(`${combo} COMBO!`, x, y);
+
+        // 填充
+        this.ctx.fillStyle = '#ffff00';
+        this.ctx.fillText(`${combo} COMBO!`, x, y);
+
+        // 倍數
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillText(`${this.comboManager.getMultiplier().toFixed(1)}x`, x, y + 40);
+
+        this.ctx.restore();
+    }
+
+    /**
+     * 處理特殊磚塊效果
+     */
+    handleSpecialBrick(brick) {
+        if (!brick || !brick.type) return;
+
+        switch (brick.type) {
+            case 'explosive':
+                // 爆炸效果
+                const explosionInfo = brick.getExplosionInfo();
+                this.brickManager.bricks.forEach(otherBrick => {
+                    if (otherBrick.visible && otherBrick !== brick) {
+                        const dx = (otherBrick.x + otherBrick.width / 2) - explosionInfo.x;
+                        const dy = (otherBrick.y + otherBrick.height / 2) - explosionInfo.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance <= explosionInfo.radius) {
+                            otherBrick.visible = false;
+                            this.score += otherBrick.points;
+                            this.stats.bricksDestroyed++;
+                            this.particleManager.createBrickExplosion(
+                                otherBrick.x, otherBrick.y,
+                                otherBrick.width, otherBrick.height,
+                                otherBrick.color
+                            );
+                        }
+                    }
+                });
+                // 爆炸粒子特效
+                this.particleManager.createBossDeathEffect(
+                    explosionInfo.x - 50, explosionInfo.y - 50, 100, 100
+                );
+                break;
+
+            case 'freeze':
+                // 冰凍效果已在 Brick 類中處理
+                break;
+
+            case 'teleport':
+                // 傳送效果已在 TeleportBrick 類中處理
+                break;
+        }
+    }
+
+    /**
+     * 顯示成就通知
+     */
+    showAchievement(achievement) {
+        this.audioManager.playLevelComplete();
+
+        // 創建通知元素（如果不存在）
+        let notification = document.getElementById('achievement-notification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'achievement-notification';
+            notification.className = 'achievement-notification';
+            document.body.appendChild(notification);
+        }
+
+        // 設置通知內容
+        notification.innerHTML = `
+            <div class="achievement-icon">${achievement.icon}</div>
+            <div class="achievement-info">
+                <div class="achievement-title">成就解鎖！</div>
+                <div class="achievement-name">${achievement.name}</div>
+                <div class="achievement-desc">${achievement.description}</div>
+            </div>
+        `;
+
+        // 顯示通知
+        notification.classList.add('show');
+
+        // 3 秒後隱藏
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    }
+
+    /**
+     * 失去生命時播放音效和特效
+     */
+    loseLifeEffects() {
+        this.audioManager.playLifeLost();
+        this.comboManager.resetCombo();
+        this.updateComboUI();
     }
 }
