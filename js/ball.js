@@ -60,23 +60,27 @@ class Ball {
             return;
         }
 
-        // 計算角度（弧度）
-        const angle = Math.atan2(this.dy, this.dx);
-
         // 限制最小垂直速度分量（防止太平）
         const minVerticalSpeed = 1.0;
         if (Math.abs(this.dy) < minVerticalSpeed) {
-            // 重新計算速度，確保有最小垂直分量
-            const newAngle = this.dy > 0 ? Math.PI / 6 : -Math.PI / 6; // 30度
-            this.dx = speed * Math.cos(newAngle) * (this.dx > 0 ? 1 : -1);
-            this.dy = speed * Math.sin(newAngle) * (this.dy > 0 ? 1 : -1);
+            // 保持原有方向符號，只調整速度大小
+            const targetAngle = Math.PI / 6; // 30度
+
+            // 計算新的速度分量（保持總速度不變）
+            const newDy = speed * Math.sin(targetAngle);
+            const newDx = speed * Math.cos(targetAngle);
+
+            // 保持原有方向
+            this.dy = Math.abs(newDy) * (this.dy >= 0 ? 1 : -1);
+            this.dx = Math.abs(newDx) * (this.dx >= 0 ? 1 : -1);
         }
 
         // 限制最小水平速度分量（防止太陡）
         const minHorizontalSpeed = 0.5;
         if (Math.abs(this.dx) < minHorizontalSpeed && Math.abs(this.dy) > minVerticalSpeed) {
-            // 添加小的水平分量
-            this.dx = minHorizontalSpeed * (Math.random() > 0.5 ? 1 : -1);
+            // 添加小的水平分量，保持或隨機選擇方向
+            const direction = this.dx !== 0 ? Math.sign(this.dx) : (Math.random() > 0.5 ? 1 : -1);
+            this.dx = minHorizontalSpeed * direction;
         }
     }
 
