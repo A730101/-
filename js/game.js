@@ -1133,21 +1133,13 @@ class Game {
             // 音量設定可以在 audioManager 中實現
         }
 
-        // 應用難度設定
-        const difficultyMultiplier = this.settingsManager.getDifficultyMultiplier();
-
-        // 應用速度倍率
-        this.balls.forEach(ball => {
-            ball.defaultSpeed *= difficultyMultiplier.speed;
-            ball.speed = ball.defaultSpeed;
-        });
-
         // 應用粒子效果設定
         if (this.particleManager && !settings.graphics.particles) {
             this.particleManager.enabled = false;
         }
 
-        // 其他設定可以根據需要擴展
+        // 難度設定會在遊戲重啟時生效，不在運行時修改
+        // 這樣可以避免速度累積的問題
     }
 
     /**
