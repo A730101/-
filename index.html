@@ -70,6 +70,8 @@
             <button onclick="game.saveGame()">儲存遊戲 (S)</button>
             <button onclick="game.loadGame()">載入遊戲 (L)</button>
             <button onclick="game.restart()">重新開始 (R)</button>
+            <button onclick="if(typeof leaderboard !== 'undefined') leaderboard.showLeaderboard()">🏆 排行榜</button>
+            <button onclick="if(typeof settingsManager !== 'undefined') settingsManager.showSettings()">⚙️ 設定</button>
         </div>
 
         <div class="instructions">
@@ -178,6 +180,8 @@
     <script src="js/achievement.js?v=2.1"></script>
     <script src="js/skill-level.js?v=2.1"></script>
     <script src="js/story.js?v=2.1"></script>
+    <script src="js/leaderboard.js?v=2.1"></script>
+    <script src="js/settings.js?v=2.1"></script>
     <script src="js/enhancements.js?v=2.1"></script>
     <script src="js/game.js?v=2.1"></script>
     <script src="js/main.js?v=2.1"></script>

@@ -3,13 +3,32 @@
  */
 
 let game;
+let leaderboard;
+let settingsManager;
 
 // 當 DOM 載入完成後初始化遊戲
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('gameCanvas');
 
+    // 初始化全局排行榜和設定管理器
+    if (typeof LeaderboardManager !== 'undefined') {
+        leaderboard = new LeaderboardManager();
+    }
+
+    if (typeof SettingsManager !== 'undefined') {
+        settingsManager = new SettingsManager();
+    }
+
     // 初始化遊戲
     game = new Game(canvas);
+
+    // 將全局實例連接到遊戲實例（確保使用同一個實例）
+    if (game.leaderboard) {
+        leaderboard = game.leaderboard;
+    }
+    if (game.settingsManager) {
+        settingsManager = game.settingsManager;
+    }
 
     // 檢查是否有存檔
     const storage = new GameStorage();

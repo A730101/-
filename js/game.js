@@ -29,6 +29,8 @@ class Game {
         this.achievementManager = new AchievementManager();
         this.stats = new GameStats();
         this.storyManager = typeof StoryManager !== 'undefined' ? new StoryManager() : null;
+        this.leaderboard = typeof LeaderboardManager !== 'undefined' ? new LeaderboardManager() : null;
+        this.settingsManager = typeof SettingsManager !== 'undefined' ? new SettingsManager() : null;
 
         // 道具效果計時器
         this.powerupTimers = {
@@ -50,6 +52,11 @@ class Game {
             this.balls.forEach(ball => {
                 this.ballEnhancements.push(new BallEnhancement(ball));
             });
+        }
+
+        // 應用設定
+        if (this.settingsManager) {
+            this.applySettings();
         }
 
         // 初始化關卡
@@ -291,6 +298,14 @@ class Game {
                 // 連擊系統
                 const combo = this.comboManager.addCombo();
                 let multipliedScore = this.comboManager.calculateScore(result.score);
+
+                // 記錄最大連擊
+                if (!this.stats.maxCombo) {
+                    this.stats.maxCombo = 0;
+                }
+                if (combo > this.stats.maxCombo) {
+                    this.stats.maxCombo = combo;
+                }
 
                 // 應用雙倍分數效果
                 if (this.powerupTimers.doublescore > 0) {
@@ -746,6 +761,12 @@ class Game {
             this.stats.oneBallClear = true;
         }
 
+        // 更新排行榜的最快通關時間
+        if (this.leaderboard && levelTime < this.leaderboard.records.fastestClear) {
+            this.leaderboard.records.fastestClear = levelTime;
+            this.leaderboard.save();
+        }
+
         document.getElementById('levelScore').textContent = this.score;
 
         // 顯示下一關的模式
@@ -790,6 +811,34 @@ class Game {
     endGame() {
         this.gameOver = true;
         this.audioManager.playGameOver();
+
+        // 更新排行榜數據
+        if (this.leaderboard) {
+            // 更新最高分
+            this.leaderboard.updateHighScore(this.score);
+
+            // 更新最高連擊
+            const maxCombo = this.stats.maxCombo || 0;
+            if (maxCombo > this.leaderboard.records.maxCombo) {
+                this.leaderboard.records.maxCombo = maxCombo;
+            }
+
+            // 更新最高關卡
+            if (this.level > this.leaderboard.records.maxLevel) {
+                this.leaderboard.records.maxLevel = this.level;
+            }
+
+            // 更新遊戲統計
+            this.leaderboard.updateGameStats(
+                this.score,
+                this.level,
+                this.stats.bricksDestroyed || 0,
+                this.stats.skillsUsed || 0,
+                this.stats.powerupsCollected || 0,
+                Math.floor(this.stats.totalPlayTime / 60) || 0 // 轉換為秒
+            );
+        }
+
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('gameOver').classList.remove('hidden');
     }
@@ -1066,6 +1115,39 @@ class Game {
         this.ctx.fillText(`${this.comboManager.getMultiplier().toFixed(1)}x`, x, y + 40);
 
         this.ctx.restore();
+    }
+
+    /**
+     * 應用遊戲設定
+     */
+    applySettings() {
+        if (!this.settingsManager) return;
+
+        const settings = this.settingsManager.settings;
+
+        // 應用音頻設定
+        if (this.audioManager) {
+            if (!settings.audio.enabled) {
+                this.audioManager.enabled = false;
+            }
+            // 音量設定可以在 audioManager 中實現
+        }
+
+        // 應用難度設定
+        const difficultyMultiplier = this.settingsManager.getDifficultyMultiplier();
+
+        // 應用速度倍率
+        this.balls.forEach(ball => {
+            ball.defaultSpeed *= difficultyMultiplier.speed;
+            ball.speed = ball.defaultSpeed;
+        });
+
+        // 應用粒子效果設定
+        if (this.particleManager && !settings.graphics.particles) {
+            this.particleManager.enabled = false;
+        }
+
+        // 其他設定可以根據需要擴展
     }
 
     /**
