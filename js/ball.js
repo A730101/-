@@ -38,49 +38,8 @@ class Ball {
      */
     move() {
         if (this.launched) {
-            // 檢查並修正極端角度
-            this.normalizeAngle();
-
             this.x += this.dx;
             this.y += this.dy;
-        }
-    }
-
-    /**
-     * 規範化球的移動角度，防止太平或太陡
-     */
-    normalizeAngle() {
-        // 計算當前角度
-        const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
-
-        // 如果速度太小，重置為預設速度
-        if (speed < 1) {
-            this.dx = 0;
-            this.dy = -this.defaultSpeed;
-            return;
-        }
-
-        // 限制最小垂直速度分量（防止太平）
-        const minVerticalSpeed = 1.0;
-        if (Math.abs(this.dy) < minVerticalSpeed) {
-            // 保持原有方向符號，只調整速度大小
-            const targetAngle = Math.PI / 6; // 30度
-
-            // 計算新的速度分量（保持總速度不變）
-            const newDy = speed * Math.sin(targetAngle);
-            const newDx = speed * Math.cos(targetAngle);
-
-            // 保持原有方向
-            this.dy = Math.abs(newDy) * (this.dy >= 0 ? 1 : -1);
-            this.dx = Math.abs(newDx) * (this.dx >= 0 ? 1 : -1);
-        }
-
-        // 限制最小水平速度分量（防止太陡）
-        const minHorizontalSpeed = 0.5;
-        if (Math.abs(this.dx) < minHorizontalSpeed && Math.abs(this.dy) > minVerticalSpeed) {
-            // 添加小的水平分量，保持或隨機選擇方向
-            const direction = this.dx !== 0 ? Math.sign(this.dx) : (Math.random() > 0.5 ? 1 : -1);
-            this.dx = minHorizontalSpeed * direction;
         }
     }
 
@@ -124,22 +83,29 @@ class Ball {
         // 左右牆壁
         if (this.x - this.radius < 0 || this.x + this.radius > this.canvas.width) {
             this.dx = -this.dx;
-            this.x = this.x < this.canvas.width / 2 ? this.radius : this.canvas.width - this.radius;
+            // 修正位置，防止卡在牆裡
+            if (this.x - this.radius < 0) {
+                this.x = this.radius;
+            } else {
+                this.x = this.canvas.width - this.radius;
+            }
 
-            // 防止完全垂直運動 - 添加小角度偏移
-            if (Math.abs(this.dx) < 0.5) {
-                this.dx = (Math.random() > 0.5 ? 1 : -1) * 1.5;
+            // 確保有足夠的垂直速度，防止球沿牆壁滑動
+            if (Math.abs(this.dy) < 1.5) {
+                // 保持原方向，但增加垂直速度
+                this.dy = this.dy >= 0 ? 1.5 : -1.5;
             }
         }
 
         // 上牆
         if (this.y - this.radius < 0) {
-            this.dy = -this.dy;
+            this.dy = Math.abs(this.dy); // 確保向下
             this.y = this.radius;
 
-            // 防止完全水平運動 - 添加小角度偏移
-            if (Math.abs(this.dy) < 0.5) {
-                this.dy = 1.5;
+            // 確保有水平速度，防止垂直掉落
+            if (Math.abs(this.dx) < 1.0) {
+                const direction = this.dx >= 0 ? 1 : -1;
+                this.dx = direction * 2.0;
             }
         }
     }

@@ -374,9 +374,22 @@ class Game {
             }
         });
 
-        // 移除掉出畫面的球
+        // 移除掉出畫面的球，並同步移除對應的增強效果
         const ballsBeforeFilter = this.balls.length;
-        this.balls = this.balls.filter(ball => !ball.isOutOfBounds());
+        const remainingIndices = [];
+
+        this.balls = this.balls.filter((ball, index) => {
+            const inBounds = !ball.isOutOfBounds();
+            if (inBounds) {
+                remainingIndices.push(index);
+            }
+            return inBounds;
+        });
+
+        // 同步更新 ballEnhancements 數組
+        if (this.ballEnhancements.length > 0) {
+            this.ballEnhancements = remainingIndices.map(index => this.ballEnhancements[index]).filter(e => e);
+        }
 
         // 檢查是否有球掉出
         const ballsLost = ballsBeforeFilter - this.balls.length;
@@ -589,6 +602,12 @@ class Game {
                         newBall.dx = -ball.dx + (Math.random() - 0.5) * 2;
                         newBall.dy = ball.dy;
                         newBall.launched = true;
+
+                        // 同步 BallEnhancement
+                        if (typeof BallEnhancement !== 'undefined') {
+                            this.ballEnhancements.push(new BallEnhancement(newBall));
+                        }
+
                         return newBall;
                     });
                     this.balls = this.balls.concat(newBalls);
@@ -642,8 +661,11 @@ class Game {
                     for (let i = 0; i < 3; i++) {
                         const sourceBall = this.balls[0];
                         const newBall = new Ball(this.canvas, sourceBall.x, sourceBall.y);
-                        newBall.dx = (Math.random() - 0.5) * 8;
-                        newBall.dy = -Math.abs(newBall.dy);
+                        // 設置隨機角度，確保有垂直速度
+                        const angle = (Math.random() * 60 - 30) * Math.PI / 180; // -30 到 30 度
+                        const speed = sourceBall.speed || 5;
+                        newBall.dx = speed * Math.sin(angle);
+                        newBall.dy = -speed * Math.cos(angle); // 確保向上
                         newBall.launched = true;
                         this.balls.push(newBall);
 
@@ -728,6 +750,11 @@ class Game {
      * 失去一條生命
      */
     loseLife() {
+        // 無敵時間內不會失去生命
+        if (this.powerupTimers.invincible > 0) {
+            return;
+        }
+
         this.lives--;
         this.updateLives();
         this.loseLifeEffects();
@@ -739,6 +766,14 @@ class Game {
             this.balls = [new Ball(this.canvas)];
             this.paddle.reset();
             this.stats.noDamageStreak = 0; // 重置無傷連勝
+
+            // 同步 ballEnhancements 數組
+            this.ballEnhancements = [];
+            if (typeof BallEnhancement !== 'undefined') {
+                this.balls.forEach(ball => {
+                    this.ballEnhancements.push(new BallEnhancement(ball));
+                });
+            }
         }
     }
 
