@@ -281,8 +281,18 @@ class Game {
      * 顯示訊息（簡單實現）
      */
     showMessage(text, color) {
-        // 可以擴展為更好的視覺效果
-        console.log(text);
+        const messageOverlay = document.getElementById('messageOverlay');
+        messageOverlay.textContent = text;
+        messageOverlay.style.color = color;
+        messageOverlay.classList.remove('hidden');
+        messageOverlay.classList.add('visible');
+
+        setTimeout(() => {
+            messageOverlay.classList.remove('visible');
+            setTimeout(() => {
+                messageOverlay.classList.add('hidden');
+            }, 500);
+        }, 2000);
     }
 
     /**
