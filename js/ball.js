@@ -83,13 +83,30 @@ class Ball {
         // 左右牆壁
         if (this.x - this.radius < 0 || this.x + this.radius > this.canvas.width) {
             this.dx = -this.dx;
-            this.x = this.x < this.canvas.width / 2 ? this.radius : this.canvas.width - this.radius;
+            // 修正位置，防止卡在牆裡
+            if (this.x - this.radius < 0) {
+                this.x = this.radius;
+            } else {
+                this.x = this.canvas.width - this.radius;
+            }
+
+            // 確保有足夠的垂直速度，防止球沿牆壁滑動
+            if (Math.abs(this.dy) < 1.5) {
+                // 保持原方向，但增加垂直速度
+                this.dy = this.dy >= 0 ? 1.5 : -1.5;
+            }
         }
 
         // 上牆
         if (this.y - this.radius < 0) {
-            this.dy = -this.dy;
+            this.dy = Math.abs(this.dy); // 確保向下
             this.y = this.radius;
+
+            // 確保有水平速度，防止垂直掉落
+            if (Math.abs(this.dx) < 1.0) {
+                const direction = this.dx >= 0 ? 1 : -1;
+                this.dx = direction * 2.0;
+            }
         }
     }
 
@@ -106,10 +123,15 @@ class Ball {
             // 計算擊球點相對位置（-1 到 1）
             const hitPos = (this.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
 
-            // 根據擊球點調整反彈角度
+            // 根據擊球點調整反彈角度（限制在 -60 到 60 度之間）
             const angle = hitPos * 60 * Math.PI / 180; // 最大 60 度
             this.dx = this.speed * Math.sin(angle);
             this.dy = -this.speed * Math.cos(angle);
+
+            // 確保有最小垂直速度，避免太平
+            if (Math.abs(this.dy) < 2) {
+                this.dy = -2;
+            }
 
             // 確保球在板子上方
             this.y = paddle.y - this.radius;
@@ -131,10 +153,20 @@ class Ball {
      */
     bounceX() {
         this.dx = -this.dx;
+
+        // 防止完全垂直運動 - 添加小角度偏移
+        if (Math.abs(this.dx) < 0.5) {
+            this.dx = (Math.random() > 0.5 ? 1 : -1) * 1.5;
+        }
     }
 
     bounceY() {
         this.dy = -this.dy;
+
+        // 防止完全水平運動 - 添加小角度偏移
+        if (Math.abs(this.dy) < 0.5) {
+            this.dy = (this.dy > 0 ? 1 : -1) * 1.5;
+        }
     }
 
     /**

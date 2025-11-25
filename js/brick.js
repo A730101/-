@@ -545,13 +545,22 @@ class BrickManager {
             health = Math.min(Math.floor((level - 1) / 5) + 1, 5);
         }
 
-        const brick = new Brick(
-            x, y,
-            brickWidth, brickHeight,
-            this.colors[colorIndex].color,
-            this.colors[colorIndex].points + (level - 1) * 5,
-            health
-        );
+        // 嘗試生成特殊磚塊（關卡 3 以上才會出現）
+        let brick = null;
+        if (level >= 3 && typeof SpecialBrickFactory !== 'undefined') {
+            brick = SpecialBrickFactory.createRandom(x, y, brickWidth, brickHeight, level);
+        }
+
+        // 如果沒有生成特殊磚塊，創建普通磚塊
+        if (!brick) {
+            brick = new Brick(
+                x, y,
+                brickWidth, brickHeight,
+                this.colors[colorIndex].color,
+                this.colors[colorIndex].points + (level - 1) * 5,
+                health
+            );
+        }
 
         this.bricks.push(brick);
     }

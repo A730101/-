@@ -6,19 +6,41 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>打磚塊遊戲 v1.6</title>
-    <link rel="stylesheet" href="css/style.css?v=1.6">
+    <title>打磚塊遊戲 v2.1 - 超級進化版</title>
+    <link rel="stylesheet" href="css/style.css?v=2.1">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎮 打磚塊遊戲 <span style="font-size: 0.4em; color: #888;">v1.6</span></h1>
+            <h1>🎮 打磚塊遊戲 <span style="font-size: 0.4em; color: #888;">v2.1 超級進化版</span></h1>
             <div class="info">
                 <div class="score">分數: <span id="score">0</span></div>
                 <div class="lives">生命: <span id="lives">3</span></div>
                 <div class="level">關卡: <span id="level">1</span></div>
                 <div class="pattern">模式: <span id="pattern">矩形</span></div>
             </div>
+            <div class="combo-info">
+                <div class="combo">連擊: <span id="combo">0</span></div>
+                <div class="multiplier">倍數: <span id="multiplier">1.0x</span></div>
+            </div>
+        </div>
+
+        <div class="skills-bar">
+            <button id="skill-slowtime" class="skill-btn" title="時間減速 (Q)">
+                <span class="skill-icon">⏰</span>
+                <span class="skill-name">時間減速</span>
+                <div class="cooldown"></div>
+            </button>
+            <button id="skill-laser" class="skill-btn" title="激光射線 (W)">
+                <span class="skill-icon">🔴</span>
+                <span class="skill-name">激光</span>
+                <div class="cooldown"></div>
+            </button>
+            <button id="skill-shield" class="skill-btn" title="能量護盾 (E)">
+                <span class="skill-icon">🛡️</span>
+                <span class="skill-name">護盾</span>
+                <div class="cooldown"></div>
+            </button>
         </div>
 
         <div class="game-container">
@@ -48,39 +70,120 @@
             <button onclick="game.saveGame()">儲存遊戲 (S)</button>
             <button onclick="game.loadGame()">載入遊戲 (L)</button>
             <button onclick="game.restart()">重新開始 (R)</button>
+            <button onclick="if(typeof leaderboard !== 'undefined') leaderboard.showLeaderboard()">🏆 排行榜</button>
+            <button onclick="if(typeof settingsManager !== 'undefined') settingsManager.showSettings()">⚙️ 設定</button>
         </div>
 
         <div class="instructions">
-            <h3>遊戲說明</h3>
-            <ul>
-                <li><strong>移動:</strong> 使用滑鼠或 ← → 方向鍵</li>
-                <li><strong>發射:</strong> 點擊滑鼠或按空白鍵</li>
-                <li><strong>暫停:</strong> 按 P 鍵</li>
-                <li><strong>關卡模式:</strong> 10 種不同排列（矩形、金字塔、鑽石、倒金字塔、棋盤、圓形、愛心、之字形、十字、隨機）</li>
-                <li><strong>難度系統:</strong> 每完成 10 關，所有模式難度提升一級</li>
-                <li><strong>道具效果:</strong></li>
-                <ul>
-                    <li>🟢 綠色 - 延長板子</li>
-                    <li>🔴 紅色 - 縮短板子</li>
-                    <li>🔵 藍色 - 減速球</li>
-                    <li>🟡 黃色 - 加速球</li>
-                    <li>🟣 紫色 - 多球</li>
-                    <li>⭐ 金色 - 額外生命</li>
-                    <li>❄️ 青色 - 冰球（打中磚塊後冰凍，再打一次直接消失）</li>
-                </ul>
-                <li><strong>魔王磚塊:</strong> 每 5 關出現，高血量並會向玩家發射火焰攻擊！</li>
-            </ul>
+            <h3>🎮 遊戲說明</h3>
+            <div class="instructions-grid">
+                <div class="instruction-section">
+                    <h4>基本操作</h4>
+                    <ul>
+                        <li><strong>移動:</strong> 滑鼠或 ← → 方向鍵</li>
+                        <li><strong>發射:</strong> 滑鼠點擊或空白鍵</li>
+                        <li><strong>暫停:</strong> P 鍵</li>
+                        <li><strong>儲存:</strong> S 鍵</li>
+                        <li><strong>載入:</strong> L 鍵</li>
+                        <li><strong>重新開始:</strong> R 鍵</li>
+                        <li><strong>音效開關:</strong> M 鍵</li>
+                    </ul>
+                </div>
+
+                <div class="instruction-section">
+                    <h4>⚡ 主動技能 (可升級)</h4>
+                    <ul>
+                        <li><strong>Q - 時間減速:</strong> 減緩球速 5 秒</li>
+                        <li><strong>W - 激光射線:</strong> 發射激光摧毀磚塊</li>
+                        <li><strong>E - 能量護盾:</strong> 底部護盾防止失球</li>
+                        <li style="color: #ffd700; margin-top: 10px;"><strong>⭐ 技能等級:</strong> 擊破磚塊獲得經驗值</li>
+                        <li style="color: #ffd700;"><strong>升級效果:</strong> 冷卻↓ 持續↑ 效果↑</li>
+                        <li style="color: #ffd700;"><strong>Lv.5 特效:</strong> 解鎖特殊能力！</li>
+                    </ul>
+                </div>
+
+                <div class="instruction-section">
+                    <h4>🎯 道具效果 (20種)</h4>
+                    <ul style="font-size: 0.85em;">
+                        <li>🟢 延長板子 | 🔴 縮短板子</li>
+                        <li>🔵 減速球 | 🟡 加速球</li>
+                        <li>🟣 多球 (x2) | 🔮 三倍球 (x3)</li>
+                        <li>⭐ 額外生命 | 💰 金幣獎勵</li>
+                        <li>❄️ 冰球 - 冰凍磚塊</li>
+                        <li>🧲 磁力 - 吸附球到板子</li>
+                        <li>⚡ 穿透 - 穿透磚塊</li>
+                        <li>🎾 巨大球 - 增大球體</li>
+                        <li>⚡ 閃電鏈 - 連鎖傷害</li>
+                        <li>💣 爆炸球 - 範圍爆炸</li>
+                        <li>👻 幽靈球 - 穿牆反彈</li>
+                        <li>🔥 火焰球 - 持續燃燒</li>
+                        <li>🎯 黏性板 - 控制發射</li>
+                        <li>🛡️ 無敵 - 短時間無敵</li>
+                        <li>⭐ 雙倍分數 - 2x分數</li>
+                        <li>🎲 隨機增益 - 隨機正面效果</li>
+                    </ul>
+                </div>
+
+                <div class="instruction-section">
+                    <h4>🎲 特殊磚塊</h4>
+                    <ul>
+                        <li>💥 爆炸磚 - 炸毀周圍磚塊</li>
+                        <li>💰 金磚 - 超高分+多道具</li>
+                        <li>❓ 隱形磚 - 擊中後顯現</li>
+                        <li>🌀 傳送門磚 - 傳送球</li>
+                        <li>➕ 再生磚 - 自動恢復血量</li>
+                    </ul>
+                </div>
+
+                <div class="instruction-section">
+                    <h4>🔥 連擊系統</h4>
+                    <ul>
+                        <li>連續擊破磚塊累積連擊數</li>
+                        <li>每 5 連擊增加 0.5 倍分數</li>
+                        <li>3 秒內未擊破將重置</li>
+                    </ul>
+                </div>
+
+                <div class="instruction-section">
+                    <h4>💀 Boss 系統</h4>
+                    <ul>
+                        <li>每 5 關出現</li>
+                        <li>高血量 (10-30 HP)</li>
+                        <li>發射火焰攻擊</li>
+                        <li>擊中會縮短板子</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="features-highlight">
+                <h4>✨ v2.1 新功能</h4>
+                <p>
+                    <strong>🆕 技能升級系統：</strong>擊破磚塊獲得經驗值，技能可升至 Lv.5 解鎖特殊能力！<br>
+                    <strong>🎁 20種道具：</strong>稀有度系統 (Common/Uncommon/Rare/Epic) • 新增9種強力道具<br>
+                    <strong>⚡ v2.0：</strong>音效系統 • 粒子特效 • 連擊系統 • 主動技能 • 特殊磚塊 • 成就系統 • 增強系統
+                </p>
+            </div>
         </div>
     </div>
 
     <!-- 模組化的 JavaScript 檔案 -->
-    <script src="js/paddle.js?v=1.6"></script>
-    <script src="js/ball.js?v=1.6"></script>
-    <script src="js/boss.js?v=1.6"></script>
-    <script src="js/brick.js?v=1.6"></script>
-    <script src="js/powerup.js?v=1.6"></script>
-    <script src="js/storage.js?v=1.6"></script>
-    <script src="js/game.js?v=1.6"></script>
-    <script src="js/main.js?v=1.6"></script>
+    <script src="js/paddle.js?v=2.1"></script>
+    <script src="js/ball.js?v=2.1"></script>
+    <script src="js/boss.js?v=2.1"></script>
+    <script src="js/brick.js?v=2.1"></script>
+    <script src="js/special-bricks.js?v=2.1"></script>
+    <script src="js/powerup.js?v=2.1"></script>
+    <script src="js/storage.js?v=2.1"></script>
+    <script src="js/audio.js?v=2.1"></script>
+    <script src="js/particle.js?v=2.1"></script>
+    <script src="js/combo.js?v=2.1"></script>
+    <script src="js/achievement.js?v=2.1"></script>
+    <script src="js/skill-level.js?v=2.1"></script>
+    <script src="js/story.js?v=2.1"></script>
+    <script src="js/leaderboard.js?v=2.1"></script>
+    <script src="js/settings.js?v=2.1"></script>
+    <script src="js/enhancements.js?v=2.1"></script>
+    <script src="js/game.js?v=2.1"></script>
+    <script src="js/main.js?v=2.1"></script>
 </body>
 </html>
